@@ -1,0 +1,4 @@
+Name: tllama-server-rocm
+Link: /usr/lib/tllama/server/libggml-hip.so
+Alternative: /usr/lib/tllama/server/backends/rocm10.1/libggml-hip.so
+Priority: 1010

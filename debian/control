@@ -9,17 +9,20 @@ Build-Depends:
  pkgconf,
  g++,
  python3,
- libssl-dev <!pkg.tllama-server.vulkan-only>,
- libopenblas-dev <!pkg.tllama-server.vulkan-only>,
- libvulkan-dev <!pkg.tllama-server.cpu-only>,
- glslc <!pkg.tllama-server.cpu-only>,
- spirv-headers <!pkg.tllama-server.cpu-only>
+ libssl-dev <!pkg.tllama-server.vulkan-only !pkg.tllama-server.rocm-only>,
+ libopenblas-dev <!pkg.tllama-server.vulkan-only !pkg.tllama-server.rocm-only>,
+ libvulkan-dev <!pkg.tllama-server.cpu-only !pkg.tllama-server.rocm-only>,
+ glslc <!pkg.tllama-server.cpu-only !pkg.tllama-server.rocm-only>,
+ spirv-headers <!pkg.tllama-server.cpu-only !pkg.tllama-server.rocm-only>,
+ amdrocm-core-sdk10.1 (>= 10.1.0) <pkg.tllama-server.rocm-only>
+Build-Conflicts:
+ libamdhip64-dev <pkg.tllama-server.rocm-only>
 Standards-Version: 4.7.2
 Rules-Requires-Root: no
 
 Package: tllama-server
 Architecture: all
-Build-Profiles: <!pkg.tllama-server.vulkan-only>
+Build-Profiles: <!pkg.tllama-server.vulkan-only !pkg.tllama-server.rocm-only>
 Depends:
  tllama-server-core (= ${binary:Version}),
  tllama-server-backend-cpu (= ${binary:Version}),
@@ -30,7 +33,7 @@ Description: TLlama private inference server with CPU support
 
 Package: tllama-server-core
 Architecture: amd64
-Build-Profiles: <!pkg.tllama-server.vulkan-only>
+Build-Profiles: <!pkg.tllama-server.vulkan-only !pkg.tllama-server.rocm-only>
 Depends:
  ${shlibs:Depends},
  ${misc:Depends}
@@ -41,7 +44,7 @@ Description: TLlama private inference server runtime
 
 Package: tllama-server-backend-cpu
 Architecture: amd64
-Build-Profiles: <!pkg.tllama-server.vulkan-only>
+Build-Profiles: <!pkg.tllama-server.vulkan-only !pkg.tllama-server.rocm-only>
 Depends:
  tllama-server-core (= ${binary:Version}),
  ${shlibs:Depends},
@@ -52,7 +55,7 @@ Description: TLlama dynamically selected CPU and OpenBLAS backends
 
 Package: tllama-server-backend-vulkan
 Architecture: amd64
-Build-Profiles: <!pkg.tllama-server.cpu-only>
+Build-Profiles: <!pkg.tllama-server.cpu-only !pkg.tllama-server.rocm-only>
 Depends:
  tllama-server-core (= ${binary:Version}),
  tllama-server-backend-cpu (= ${binary:Version}),
@@ -61,3 +64,20 @@ Depends:
 Description: TLlama dynamically loadable Vulkan backend
  This package contains the Vulkan compute plugin for the private server
  runtime. Device support is provided by the system Vulkan drivers.
+
+Package: tllama-server-backend-rocm10.1
+Architecture: amd64
+Build-Profiles: <pkg.tllama-server.rocm-only>
+Provides: tllama-server-backend-rocm (= ${binary:Version})
+Depends:
+ tllama-server-core (= ${binary:Version}),
+ tllama-server-backend-cpu (= ${binary:Version}),
+ amdrocm-runtime10.1,
+ amdrocm-blas10.1,
+ ${shlibs:Depends},
+ ${misc:Depends}
+Description: TLlama dynamically loadable ROCm 10.1 HIP backend
+ This package provides GPU inference on AMD architectures supported by
+ ROCm Core SDK 10.1. It includes compatible kernel dispatch for gfx1250.
+ Legacy Vega gfx900, gfx906 and gfx90c kernels are not included.
+ Versioned ROCm backends can coexist; alternatives selects the default.

@@ -1,4 +1,4 @@
-# Debian source and runtime packages
+# Building Debian packages
 
 The initial package set targets Debian 13 amd64. It contains:
 
@@ -7,6 +7,7 @@ The initial package set targets Debian 13 amd64. It contains:
 - `tllama-server-backend-cpu`: portable CPU variants and the OpenBLAS plugin.
 - `tllama-server-backend-vulkan`: the Vulkan compute plugin, with dependencies
   on the exactly matching core and CPU packages.
+- `tllama-server-backend-rocm10.1`: the optional ROCm 10.1 HIP plugin.
 
 All native components use the pinned fork revision in `cmake/NativeSource.cmake`.
 The native gfx1250 fix is already part of that source; it is not reapplied by
@@ -45,7 +46,8 @@ metadata as appropriate before exporting a new source version.
 
 ## Build profiles
 
-Without a profile, the build produces all four packages. Profiles select the
+Without a profile, the build produces the four CPU/Vulkan packages. ROCm is
+built explicitly with its own profile. Profiles select the
 package set, build dependencies and native CMake targets:
 
 - `pkg.tllama-server.cpu-only`: metapackage, core and CPU/OpenBLAS in
@@ -53,6 +55,12 @@ package set, build dependencies and native CMake targets:
 - `pkg.tllama-server.vulkan-only`: only the Vulkan package in
   `build-debian-vulkan`. OpenSSL/OpenBLAS development dependencies are not
   required, and neither the server nor CPU plugins are compiled.
+
+- `pkg.tllama-server.rocm-only`: only the ROCm 10.1 package in
+  `build-debian-rocm10.1`, using TheRock under `/opt/rocm/core-10.1`.
+  The build requires `amdrocm-core-sdk10.1` and conflicts with the legacy
+  `libamdhip64-dev` headers. CPU/Vulkan/OpenSSL/OpenBLAS development packages
+  are not required by this profile.
 
 The profiles cannot be combined. Once the matching core and CPU packages are
 built, build the Vulkan package independently:
@@ -87,3 +95,22 @@ inference. It runs even when `DEB_BUILD_OPTIONS=nocheck` is used because it
 validates the package installation layout.
 Vulkan device discovery and inference are checked manually on the target
 machine; the package build does not require a working GPU or Vulkan driver.
+
+## ROCm package
+
+```sh
+dpkg-checkbuilddeps -Ppkg.tllama-server.rocm-only
+debuild -Ppkg.tllama-server.rocm-only -j"$(nproc)"
+```
+
+The SDK's HIP compiler, bitcode and CMake packages are selected explicitly.
+The installed module is
+`/usr/lib/tllama/server/backends/rocm10.1/libggml-hip.so`.
+The `tllama-server-rocm` alternatives group supplies the default loader link at
+`/usr/lib/tllama/server/libggml-hip.so`. The module resolves common libraries
+relative to its own location and ROCm libraries from the versioned SDK prefix.
+Runtime dependencies on `amdrocm-runtime10.1` and `amdrocm-blas10.1` are declared
+explicitly because AMD's packages do not consistently provide shlibs metadata.
+
+Package changes contained within `debian/` can reuse the existing orig archive.
+The source-only build guide is not installed in the user-facing package docs.
