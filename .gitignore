@@ -2,3 +2,13 @@
 /stage*/
 /dist/
 /.venv/
+__pycache__/
+/debian/.debhelper/
+/debian/debhelper-build-stamp
+/debian/files
+/debian/shlibs.local
+/debian/*.debhelper
+/debian/*.substvars
+/debian/tllama-server/
+/debian/tllama-server-core/
+/debian/tllama-server-backend-cpu/

@@ -1,0 +1,45 @@
+Source: tllama-server
+Section: utils
+Priority: optional
+Maintainer: NemaChybu team APT archive <maintainers@nemachybu.cz>
+Build-Depends:
+ debhelper-compat (= 13),
+ cmake (>= 3.21),
+ ninja-build,
+ pkgconf,
+ g++,
+ python3,
+ libssl-dev,
+ libopenblas-dev
+Standards-Version: 4.7.2
+Rules-Requires-Root: no
+
+Package: tllama-server
+Architecture: all
+Depends:
+ tllama-server-core (= ${binary:Version}),
+ tllama-server-backend-cpu (= ${binary:Version}),
+ ${misc:Depends}
+Description: TLlama private inference server with CPU support
+ This metapackage installs the server runtime and dynamically selected CPU
+ backends. Hardware-specific plugins can be provided by separate packages.
+
+Package: tllama-server-core
+Architecture: amd64
+Depends:
+ ${shlibs:Depends},
+ ${misc:Depends}
+Description: TLlama private inference server runtime
+ This package contains tllama-server and its private llama.cpp and ggml
+ shared libraries under /usr/lib/tllama/server. It includes HTTPS and
+ multimodal support and does not start a system service automatically.
+
+Package: tllama-server-backend-cpu
+Architecture: amd64
+Depends:
+ tllama-server-core (= ${binary:Version}),
+ ${shlibs:Depends},
+ ${misc:Depends}
+Description: TLlama dynamically selected CPU and OpenBLAS backends
+ This package contains portable x86-64 CPU variants and an OpenBLAS plugin.
+ The runtime chooses the CPU variant supported by the current processor.

@@ -1,0 +1,64 @@
+#!/usr/bin/make -f
+
+include /usr/share/dpkg/default.mk
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+
+CORE_PACKAGE = tllama-server-core
+CPU_PACKAGE = tllama-server-backend-cpu
+RUNTIME_DIR = usr/lib/tllama/server
+BUILD_DIR = build-debian
+
+%:
+	dh $@ --buildsystem=cmake+ninja --builddirectory=$(BUILD_DIR)
+
+override_dh_auto_configure:
+	dh_auto_configure -- \
+		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
+		-DTLLAMA_BUILD_SERVER=ON \
+		-DTLLAMA_INSTALL_LIBDIR=lib/tllama/server \
+		-DTLLAMA_BACKEND_INSTALL_DIR=lib/tllama/server \
+		-DTLLAMA_BACKEND_RPATH= \
+		-DGGML_CPU=ON \
+		-DGGML_CPU_ALL_VARIANTS=ON \
+		-DGGML_BLAS=ON \
+		-DGGML_BLAS_VENDOR=OpenBLAS \
+		-DGGML_CUDA=OFF \
+		-DGGML_HIP=OFF \
+		-DGGML_VULKAN=OFF \
+		-DGGML_SYCL=OFF
+
+override_dh_auto_test:
+	# The runtime check below runs against the installed component layout.
+	:
+
+override_dh_auto_install:
+	DESTDIR=$(CURDIR)/debian/$(CORE_PACKAGE) \
+		cmake --install $(BUILD_DIR) --component core
+	DESTDIR=$(CURDIR)/debian/$(CPU_PACKAGE) \
+		cmake --install $(BUILD_DIR) --component backend-cpu
+	DESTDIR=$(CURDIR)/debian/$(CPU_PACKAGE) \
+		cmake --install $(BUILD_DIR) --component backend-blas
+	python3 debian/check-runtime.py debian/$(CORE_PACKAGE) debian/$(CPU_PACKAGE)
+
+override_dh_makeshlibs:
+	# These SONAMEs are private to this distribution, not global library APIs.
+	# Provide build-local metadata for shlibdeps, without exporting shlibs or
+	# adding ldconfig maintainer scripts to the packages.
+	{ \
+		for library in ggml-base ggml llama llama-common mtmd; do \
+			printf 'lib%s 0 $(CORE_PACKAGE) (= $(DEB_VERSION))\n' "$$library"; \
+		done; \
+	} > debian/shlibs.local
+
+override_dh_shlibdeps:
+	dh_shlibdeps -p$(CORE_PACKAGE) \
+		-l$(CURDIR)/debian/$(CORE_PACKAGE)/$(RUNTIME_DIR) \
+		-- -x$(CORE_PACKAGE)
+	dh_shlibdeps -p$(CPU_PACKAGE) \
+		-l$(CURDIR)/debian/$(CORE_PACKAGE)/$(RUNTIME_DIR) \
+		-- -x$(CORE_PACKAGE)
+
+override_dh_auto_clean:
+	# Cleaning must not configure an incomplete CMake tree or start a build.
+	rm -rf $(BUILD_DIR)
+	rm -f debian/shlibs.local

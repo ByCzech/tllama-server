@@ -1,0 +1,8 @@
+tllama-server (0.1.0+b11552-1) stable; urgency=medium
+
+  * Package the private server runtime and portable CPU/OpenBLAS backends.
+  * Pin llama.cpp b11552 with the gfx1250 compatibility fix.
+  * Export self-contained upstream archives from the committed sources.
+  * Check staged library resolution and CPU backend loading during the build.
+
+ -- NemaChybu team APT archive <maintainers@nemachybu.cz>  Sun, 11 Oct 2026 22:45:00 +0200
