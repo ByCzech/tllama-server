@@ -99,6 +99,8 @@ ifeq ($(CPU_ONLY),)
 endif
 
 override_dh_auto_clean:
-	# Preserve the other profile's tree and never configure during cleaning.
-	rm -rf $(BUILD_DIR)
-	rm -f debian/shlibs.local
+	# Preserve the other profile's CMake tree, but remove package staging
+	# output from every profile before dpkg-source collects debian/.
+	rm -rf $(BUILD_DIR) debian/tllama-server \
+		debian/$(CORE_PACKAGE) debian/$(CPU_PACKAGE) debian/$(VULKAN_PACKAGE)
+	rm -f debian/shlibs.local debian/*.substvars debian/*.debhelper
