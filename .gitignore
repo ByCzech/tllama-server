@@ -12,3 +12,4 @@ __pycache__/
 /debian/tllama-server/
 /debian/tllama-server-core/
 /debian/tllama-server-backend-cpu/
+/debian/tllama-server-backend-vulkan/

@@ -5,8 +5,32 @@ export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 
 CORE_PACKAGE = tllama-server-core
 CPU_PACKAGE = tllama-server-backend-cpu
+VULKAN_PACKAGE = tllama-server-backend-vulkan
 RUNTIME_DIR = usr/lib/tllama/server
+CPU_ONLY = $(filter pkg.tllama-server.cpu-only,$(DEB_BUILD_PROFILES))
+VULKAN_ONLY = $(filter pkg.tllama-server.vulkan-only,$(DEB_BUILD_PROFILES))
+
+ifneq ($(CPU_ONLY),)
+ifneq ($(VULKAN_ONLY),)
+$(error cpu-only and vulkan-only build profiles cannot be combined)
+endif
+endif
+
+ifeq ($(VULKAN_ONLY),)
 BUILD_DIR = build-debian
+BUILD_SERVER = ON
+BUILD_CPU = ON
+else
+BUILD_DIR = build-debian-vulkan
+BUILD_SERVER = OFF
+BUILD_CPU = OFF
+endif
+
+ifeq ($(CPU_ONLY),)
+BUILD_VULKAN = ON
+else
+BUILD_VULKAN = OFF
+endif
 
 %:
 	dh $@ --buildsystem=cmake+ninja --builddirectory=$(BUILD_DIR)
@@ -14,24 +38,25 @@ BUILD_DIR = build-debian
 override_dh_auto_configure:
 	dh_auto_configure -- \
 		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
-		-DTLLAMA_BUILD_SERVER=ON \
+		-DTLLAMA_BUILD_SERVER=$(BUILD_SERVER) \
 		-DTLLAMA_INSTALL_LIBDIR=lib/tllama/server \
 		-DTLLAMA_BACKEND_INSTALL_DIR=lib/tllama/server \
 		-DTLLAMA_BACKEND_RPATH= \
-		-DGGML_CPU=ON \
-		-DGGML_CPU_ALL_VARIANTS=ON \
-		-DGGML_BLAS=ON \
+		-DGGML_CPU=$(BUILD_CPU) \
+		-DGGML_CPU_ALL_VARIANTS=$(BUILD_CPU) \
+		-DGGML_BLAS=$(BUILD_CPU) \
 		-DGGML_BLAS_VENDOR=OpenBLAS \
 		-DGGML_CUDA=OFF \
 		-DGGML_HIP=OFF \
-		-DGGML_VULKAN=OFF \
+		-DGGML_VULKAN=$(BUILD_VULKAN) \
 		-DGGML_SYCL=OFF
 
 override_dh_auto_test:
-	# The runtime check below runs against the installed component layout.
+	# The CPU runtime check below uses the installed component layout.
 	:
 
 override_dh_auto_install:
+ifeq ($(VULKAN_ONLY),)
 	DESTDIR=$(CURDIR)/debian/$(CORE_PACKAGE) \
 		cmake --install $(BUILD_DIR) --component core
 	DESTDIR=$(CURDIR)/debian/$(CPU_PACKAGE) \
@@ -39,11 +64,16 @@ override_dh_auto_install:
 	DESTDIR=$(CURDIR)/debian/$(CPU_PACKAGE) \
 		cmake --install $(BUILD_DIR) --component backend-blas
 	python3 debian/check-runtime.py debian/$(CORE_PACKAGE) debian/$(CPU_PACKAGE)
+endif
+ifeq ($(CPU_ONLY),)
+	DESTDIR=$(CURDIR)/debian/$(VULKAN_PACKAGE) \
+		cmake --install $(BUILD_DIR) --component backend-vulkan
+endif
 
 override_dh_makeshlibs:
 	# These SONAMEs are private to this distribution, not global library APIs.
-	# Provide build-local metadata for shlibdeps, without exporting shlibs or
-	# adding ldconfig maintainer scripts to the packages.
+	# Provide build-local metadata without publishing global shlibs or adding
+	# ldconfig maintainer scripts to the packages.
 	{ \
 		for library in ggml-base ggml llama llama-common mtmd; do \
 			printf 'lib%s 0 $(CORE_PACKAGE) (= $(DEB_VERSION))\n' "$$library"; \
@@ -51,14 +81,24 @@ override_dh_makeshlibs:
 	} > debian/shlibs.local
 
 override_dh_shlibdeps:
+ifeq ($(VULKAN_ONLY),)
 	dh_shlibdeps -p$(CORE_PACKAGE) \
 		-l$(CURDIR)/debian/$(CORE_PACKAGE)/$(RUNTIME_DIR) \
 		-- -x$(CORE_PACKAGE)
 	dh_shlibdeps -p$(CPU_PACKAGE) \
 		-l$(CURDIR)/debian/$(CORE_PACKAGE)/$(RUNTIME_DIR) \
 		-- -x$(CORE_PACKAGE)
+endif
+ifeq ($(CPU_ONLY),)
+	# In a backend-only build, resolve ggml-base from this build tree. Local
+	# shlibs metadata maps it to the exact core package version; the common
+	# library itself is not included in the Vulkan package.
+	dh_shlibdeps -p$(VULKAN_PACKAGE) \
+		-l$(CURDIR)/$(BUILD_DIR)/bin \
+		-- -x$(CORE_PACKAGE)
+endif
 
 override_dh_auto_clean:
-	# Cleaning must not configure an incomplete CMake tree or start a build.
+	# Preserve the other profile's tree and never configure during cleaning.
 	rm -rf $(BUILD_DIR)
 	rm -f debian/shlibs.local

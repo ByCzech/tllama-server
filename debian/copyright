@@ -11,7 +11,7 @@ Copyright: 2023-2026 The ggml authors
 License: MIT
 Comment: The complete pinned native tree is retained in source archives.
  Embedded upstream license notices remain in their original source files.
- The web UI and accelerator backends are not part of these binary packages.
+ The web UI is not part of these binary packages.
 
 Files: vendor/llama.cpp/vendor/nlohmann/*
 Copyright: 2013-2025 Niels Lohmann

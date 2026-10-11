@@ -1,3 +1,11 @@
+tllama-server (0.6.0~dev+b11552-1) stable; urgency=medium
+
+  * Align the distribution version with the pinned native 0.6.0-dev snapshot.
+  * Keep the executable private and remove the public command symlink.
+  * Add the Vulkan plugin package and separate CPU-only/Vulkan-only profiles.
+
+ -- NemaChybu team APT archive <maintainers@nemachybu.cz>  Mon, 12 Oct 2026 00:18:00 +0200
+
 tllama-server (0.1.0+b11552-1) stable; urgency=medium
 
   * Package the private server runtime and portable CPU/OpenBLAS backends.

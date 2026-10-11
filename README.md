@@ -1,8 +1,8 @@
 # tllama-server
 
 Distribution and build integration for a pinned, patched llama.cpp server.
-The initial build supports Linux. Debian packaging and Python distribution
-metadata will be added separately.
+The initial build supports Linux. See `debian/README.Debian.md` for Debian
+packaging and build profiles. Python distribution metadata will be added later.
 
 ## Sources
 
@@ -29,7 +29,7 @@ cmake -S . -B build-cpu -G Ninja \
     -DCMAKE_INSTALL_PREFIX=/usr
 cmake --build build-cpu --target tllama-runtime -j"$(nproc)"
 DESTDIR="$PWD/stage-cpu" cmake --install build-cpu
-stage-cpu/usr/bin/tllama-server --version
+stage-cpu/usr/lib/tllama/server/tllama-server --version
 ```
 
 The default build includes the CPU variants supported by upstream's current
@@ -41,14 +41,14 @@ are retained.
 
 The installed layout is:
 
-- `bin/tllama-server`: a relative symlink to the private executable.
 - `lib/tllama/server/tllama-server`: the native executable.
 - `lib/tllama/server/`: the required shared libraries and backend modules.
 - `share/doc/tllama-server/LICENSE.llama.cpp`: the native license.
 
 Private libraries use relative `$ORIGIN` lookup. The native loader discovers
-default backend modules beside the real executable, including when launched
-through the public symlink. The staged tree can be moved without relying on
+default backend modules beside the executable. There is no public command
+symlink; TLlama invokes the private executable directly. The staged tree can be
+moved without relying on
 the build directory, `LD_LIBRARY_PATH`, or a system-wide `ldconfig` entry.
 
 ## Backend builds and install components
@@ -76,6 +76,7 @@ DESTDIR="$PWD/stage-cpu-backend" \
 ```
 
 Modules installed into a separate backend directory are not automatically
-selected by the launcher. Backend selection and SDK-version alternatives will
-be added with packaging. Every backend package must depend on the exact matching
+selected by the native loader. SDK-version selection and alternatives will
+be added with accelerator packaging. Every backend package must depend on the
+exact matching
 core package version; internal ggml module ABI compatibility is not assumed.

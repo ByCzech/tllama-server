@@ -9,13 +9,17 @@ Build-Depends:
  pkgconf,
  g++,
  python3,
- libssl-dev,
- libopenblas-dev
+ libssl-dev <!pkg.tllama-server.vulkan-only>,
+ libopenblas-dev <!pkg.tllama-server.vulkan-only>,
+ libvulkan-dev <!pkg.tllama-server.cpu-only>,
+ glslc <!pkg.tllama-server.cpu-only>,
+ spirv-headers <!pkg.tllama-server.cpu-only>
 Standards-Version: 4.7.2
 Rules-Requires-Root: no
 
 Package: tllama-server
 Architecture: all
+Build-Profiles: <!pkg.tllama-server.vulkan-only>
 Depends:
  tllama-server-core (= ${binary:Version}),
  tllama-server-backend-cpu (= ${binary:Version}),
@@ -26,6 +30,7 @@ Description: TLlama private inference server with CPU support
 
 Package: tllama-server-core
 Architecture: amd64
+Build-Profiles: <!pkg.tllama-server.vulkan-only>
 Depends:
  ${shlibs:Depends},
  ${misc:Depends}
@@ -36,6 +41,7 @@ Description: TLlama private inference server runtime
 
 Package: tllama-server-backend-cpu
 Architecture: amd64
+Build-Profiles: <!pkg.tllama-server.vulkan-only>
 Depends:
  tllama-server-core (= ${binary:Version}),
  ${shlibs:Depends},
@@ -43,3 +49,15 @@ Depends:
 Description: TLlama dynamically selected CPU and OpenBLAS backends
  This package contains portable x86-64 CPU variants and an OpenBLAS plugin.
  The runtime chooses the CPU variant supported by the current processor.
+
+Package: tllama-server-backend-vulkan
+Architecture: amd64
+Build-Profiles: <!pkg.tllama-server.cpu-only>
+Depends:
+ tllama-server-core (= ${binary:Version}),
+ tllama-server-backend-cpu (= ${binary:Version}),
+ ${shlibs:Depends},
+ ${misc:Depends}
+Description: TLlama dynamically loadable Vulkan backend
+ This package contains the Vulkan compute plugin for the private server
+ runtime. Device support is provided by the system Vulkan drivers.

@@ -18,7 +18,7 @@ def main():
         for tree in sys.argv[1:]:
             shutil.copytree(Path(tree) / "usr", root / "usr", symlinks=True, dirs_exist_ok=True)
         runtime = root / "usr/lib/tllama/server"
-        server = root / "usr/bin/tllama-server"
+        server = runtime / "tllama-server"
         environment = os.environ.copy()
         for key in ("LD_LIBRARY_PATH", "LD_PRELOAD", "GGML_BACKEND_PATH", "GGML_BACKEND_DL_PATH"):
             environment.pop(key, None)

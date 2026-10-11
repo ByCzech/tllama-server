@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(tllama-server VERSION 0.1.0 LANGUAGES C CXX)
+project(tllama-server VERSION 0.6.0 LANGUAGES C CXX)
 
 if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
     message(FATAL_ERROR "The initial runtime installation layout supports Linux only")
@@ -13,7 +13,7 @@ set(TLLAMA_INSTALL_LIBDIR "lib/tllama/server" CACHE STRING "Relative private run
 set(TLLAMA_BACKEND_INSTALL_DIR "${TLLAMA_INSTALL_LIBDIR}" CACHE STRING "Relative backend installation directory")
 set(TLLAMA_BACKEND_RPATH "" CACHE STRING "Additional SDK runtime directories for backend modules")
 
-foreach(dir_var CMAKE_INSTALL_BINDIR TLLAMA_INSTALL_LIBDIR TLLAMA_BACKEND_INSTALL_DIR)
+foreach(dir_var TLLAMA_INSTALL_LIBDIR TLLAMA_BACKEND_INSTALL_DIR)
     if("${${dir_var}}" STREQUAL "" OR IS_ABSOLUTE "${${dir_var}}" OR
        "${${dir_var}}" MATCHES "(^|/)\\.\\.(/|$)")
         message(FATAL_ERROR "${dir_var} must be a nonempty relative path without '..'")
@@ -108,10 +108,6 @@ if(TLLAMA_BUILD_SERVER)
         RUNTIME DESTINATION "${TLLAMA_INSTALL_LIBDIR}" COMPONENT core)
     list(APPEND runtime_targets llama-server)
 
-    file(RELATIVE_PATH TLLAMA_LAUNCHER_TARGET
-        "/${CMAKE_INSTALL_BINDIR}" "/${TLLAMA_INSTALL_LIBDIR}/tllama-server")
-    configure_file(cmake/InstallLauncher.cmake.in InstallLauncher.cmake @ONLY)
-    install(SCRIPT "${CMAKE_CURRENT_BINARY_DIR}/InstallLauncher.cmake" COMPONENT core)
     install(FILES "${native_source}/LICENSE"
         DESTINATION "${CMAKE_INSTALL_DATADIR}/doc/tllama-server"
         RENAME LICENSE.llama.cpp COMPONENT core)
