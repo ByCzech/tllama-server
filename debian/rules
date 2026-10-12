@@ -266,6 +266,9 @@ ifneq ($(SYCL_ONLY),)
 		cmake --install $(BUILD_DIR) --component backend-sycl
 endif
 
+execute_after_dh_installdocs:
+	dh_lintian
+
 override_dh_makeshlibs:
 	# These SONAMEs are private to this distribution, not global library APIs.
 	# Provide build-local metadata without publishing global shlibs or adding

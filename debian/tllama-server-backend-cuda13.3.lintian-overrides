@@ -1,0 +1,2 @@
+# Select this versioned external SDK without adding it to the global loader path.
+tllama-server-backend-cuda13.3: custom-library-search-path * /usr/local/cuda-13.3/targets/x86_64-linux/lib [usr/lib/tllama/server/backends/cuda13.3/libggml-cuda.so]

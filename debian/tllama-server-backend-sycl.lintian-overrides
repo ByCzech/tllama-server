@@ -1,0 +1,6 @@
+# oneAPI runtime libraries stay outside the global loader path. Limit the
+# exceptions to the SDK directories used by this particular private module.
+tllama-server-backend-sycl: custom-library-search-path * /opt/intel/oneapi/compiler/latest/lib [usr/lib/tllama/server/backends/sycl/libggml-sycl.so]
+tllama-server-backend-sycl: custom-library-search-path * /opt/intel/oneapi/mkl/latest/lib [usr/lib/tllama/server/backends/sycl/libggml-sycl.so]
+tllama-server-backend-sycl: custom-library-search-path * /opt/intel/oneapi/dnnl/latest/lib [usr/lib/tllama/server/backends/sycl/libggml-sycl.so]
+tllama-server-backend-sycl: custom-library-search-path * /opt/intel/oneapi/tbb/latest/lib [usr/lib/tllama/server/backends/sycl/libggml-sycl.so]

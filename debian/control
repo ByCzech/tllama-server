@@ -7,7 +7,6 @@ Build-Depends:
  cmake (>= 3.21),
  ninja-build,
  pkgconf,
- g++,
  python3,
  libssl-dev <!pkg.tllama-server.vulkan-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only !pkg.tllama-server.cuda12.9-only !pkg.tllama-server.cuda13.3-only !pkg.tllama-server.sycl-only>,
  libopenblas-dev <!pkg.tllama-server.vulkan-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only !pkg.tllama-server.cuda12.9-only !pkg.tllama-server.cuda13.3-only !pkg.tllama-server.sycl-only>,

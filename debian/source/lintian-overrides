@@ -1,0 +1,4 @@
+# The private runtime deliberately requires exactly matching core and CPU
+# versions. Independent binary NMUs are not supported by this distribution.
+tllama-server source: not-binnmuable-all-depends-any tllama-server -> tllama-server-backend-cpu
+tllama-server source: not-binnmuable-all-depends-any tllama-server -> tllama-server-core
