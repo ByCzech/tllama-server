@@ -9,12 +9,13 @@ Build-Depends:
  pkgconf,
  g++,
  python3,
- libssl-dev <!pkg.tllama-server.vulkan-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only>,
- libopenblas-dev <!pkg.tllama-server.vulkan-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only>,
- libvulkan-dev <!pkg.tllama-server.cpu-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only>,
- glslc <!pkg.tllama-server.cpu-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only>,
- spirv-headers <!pkg.tllama-server.cpu-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only>,
+ libssl-dev <!pkg.tllama-server.vulkan-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only !pkg.tllama-server.cuda12.9-only>,
+ libopenblas-dev <!pkg.tllama-server.vulkan-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only !pkg.tllama-server.cuda12.9-only>,
+ libvulkan-dev <!pkg.tllama-server.cpu-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only !pkg.tllama-server.cuda12.9-only>,
+ glslc <!pkg.tllama-server.cpu-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only !pkg.tllama-server.cuda12.9-only>,
+ spirv-headers <!pkg.tllama-server.cpu-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only !pkg.tllama-server.cuda12.9-only>,
  nvidia-cuda-toolkit (>= 12.4) <pkg.tllama-server.cuda12.4-only>,
+ cuda-toolkit-12-9 <pkg.tllama-server.cuda12.9-only>,
  amdrocm-core-sdk10.1 (>= 10.1.0) <pkg.tllama-server.rocm-only>
 Build-Conflicts:
  libamdhip64-dev <pkg.tllama-server.rocm-only>
@@ -23,7 +24,7 @@ Rules-Requires-Root: no
 
 Package: tllama-server
 Architecture: all
-Build-Profiles: <!pkg.tllama-server.vulkan-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only>
+Build-Profiles: <!pkg.tllama-server.vulkan-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only !pkg.tllama-server.cuda12.9-only>
 Depends:
  tllama-server-core (= ${binary:Version}),
  tllama-server-backend-cpu (= ${binary:Version}),
@@ -34,7 +35,7 @@ Description: TLlama private inference server with CPU support
 
 Package: tllama-server-core
 Architecture: amd64
-Build-Profiles: <!pkg.tllama-server.vulkan-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only>
+Build-Profiles: <!pkg.tllama-server.vulkan-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only !pkg.tllama-server.cuda12.9-only>
 Depends:
  ${shlibs:Depends},
  ${misc:Depends}
@@ -45,7 +46,7 @@ Description: TLlama private inference server runtime
 
 Package: tllama-server-backend-cpu
 Architecture: amd64
-Build-Profiles: <!pkg.tllama-server.vulkan-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only>
+Build-Profiles: <!pkg.tllama-server.vulkan-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only !pkg.tllama-server.cuda12.9-only>
 Depends:
  tllama-server-core (= ${binary:Version}),
  ${shlibs:Depends},
@@ -56,7 +57,7 @@ Description: TLlama dynamically selected CPU and OpenBLAS backends
 
 Package: tllama-server-backend-vulkan
 Architecture: amd64
-Build-Profiles: <!pkg.tllama-server.cpu-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only>
+Build-Profiles: <!pkg.tllama-server.cpu-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only !pkg.tllama-server.cuda12.9-only>
 Depends:
  tllama-server-core (= ${binary:Version}),
  tllama-server-backend-cpu (= ${binary:Version}),
@@ -96,4 +97,21 @@ Description: TLlama dynamically loadable CUDA 12.4 backend
  This package provides NVIDIA GPU inference using Debian's CUDA 12.4
  runtime. It supports Maxwell, Pascal including Tesla P100, Volta, Turing,
  Ampere, Ada and Hopper GPUs with a compatible NVIDIA driver.
+ Versioned CUDA backends can coexist; alternatives selects the default.
+
+Package: tllama-server-backend-cuda12.9
+Architecture: amd64
+Build-Profiles: <pkg.tllama-server.cuda12.9-only>
+Provides: tllama-server-backend-cuda (= ${binary:Version})
+Depends:
+ tllama-server-core (= ${binary:Version}),
+ tllama-server-backend-cpu (= ${binary:Version}),
+ cuda-cudart-12-9,
+ libcublas-12-9,
+ ${shlibs:Depends},
+ ${misc:Depends}
+Description: TLlama dynamically loadable CUDA 12.9 backend
+ This package provides NVIDIA GPU inference using the versioned CUDA 12.9
+ runtime. It supports Maxwell through Blackwell GPUs, including Pascal
+ Tesla P100, with a compatible NVIDIA driver.
  Versioned CUDA backends can coexist; alternatives selects the default.

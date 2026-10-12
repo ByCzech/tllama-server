@@ -9,6 +9,7 @@ The initial package set targets Debian 13 amd64. It contains:
   on the exactly matching core and CPU packages.
 - `tllama-server-backend-rocm10.1`: the optional ROCm 10.1 HIP plugin.
 - `tllama-server-backend-cuda12.4`: the optional Debian CUDA 12.4 plugin.
+- `tllama-server-backend-cuda12.9`: the optional NVIDIA CUDA 12.9 plugin.
 
 All native components use the pinned fork revision in `cmake/NativeSource.cmake`.
 The native gfx1250 fix is already part of that source; it is not reapplied by
@@ -136,3 +137,24 @@ The `tllama-server-cuda` alternatives group supplies the default loader link at
 to the module, while CUDA runtime libraries use Debian's system library paths.
 Shared library metadata supplies dependencies on the CUDA runtime and NVIDIA
 driver packages. A real NVIDIA GPU is not required for building the package.
+
+## CUDA 12.9 package
+
+```sh
+dpkg-checkbuilddeps -Ppkg.tllama-server.cuda12.9-only
+debuild -Ppkg.tllama-server.cuda12.9-only -j"$(nproc)"
+```
+
+This profile builds only the CUDA 12.9 package in `build-debian-cuda12.9`, using
+`cuda-toolkit-12-9` under `/usr/local/cuda-12.9`. It keeps Pascal support and
+adds architecture-specific Blackwell images for sm_120a and sm_121a.
+
+The build makes a private SDK shadow under `build-cuda12.9-sdk` and adds
+the glibc 2.41 exception specifications to four math declarations in its copy
+of `math_functions.h`. NVIDIA-owned files remain untouched. The shadow is
+excluded from Git and source archives and removed when cleaning this profile.
+
+The plugin is installed under `backends/cuda12.9` and participates in the same
+`tllama-server-cuda` alternatives group as CUDA 12.4, with a higher priority.
+Its runtime paths point to the real versioned SDK library directory, never to
+the build-local shadow. Runtime and cuBLAS package dependencies are explicit.

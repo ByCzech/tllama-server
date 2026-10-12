@@ -6,7 +6,13 @@ export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 CORE_PACKAGE = tllama-server-core
 CPU_PACKAGE = tllama-server-backend-cpu
 VULKAN_PACKAGE = tllama-server-backend-vulkan
-CUDA_PACKAGE = tllama-server-backend-cuda12.4
+CUDA_PACKAGE = tllama-server-backend-cuda$(CUDA_VERSION)
+CUDA_VERSION = 12.4
+CUDA_COMPILER = /usr/bin/nvcc
+CUDA_RPATH =
+CUDA_LIBRARY_PATH = /usr/lib/$(DEB_HOST_MULTIARCH)
+CUDA_TOOLKIT_OPTION =
+CUDA_SHLIBDEPS_FLAGS =
 CUDA_TARGETS = 50-virtual;60;61-virtual;70-virtual;75-virtual;80-virtual;86-real;89-real;90-virtual
 ROCM_PACKAGE = tllama-server-backend-rocm10.1
 ROCM_ROOT = /opt/rocm/core-10.1
@@ -15,13 +21,27 @@ RUNTIME_DIR = usr/lib/tllama/server
 CPU_ONLY = $(filter pkg.tllama-server.cpu-only,$(DEB_BUILD_PROFILES))
 VULKAN_ONLY = $(filter pkg.tllama-server.vulkan-only,$(DEB_BUILD_PROFILES))
 ROCM_ONLY = $(filter pkg.tllama-server.rocm-only,$(DEB_BUILD_PROFILES))
-CUDA_ONLY = $(filter pkg.tllama-server.cuda12.4-only,$(DEB_BUILD_PROFILES))
+CUDA_ONLY = $(filter pkg.tllama-server.cuda12.4-only pkg.tllama-server.cuda12.9-only,$(DEB_BUILD_PROFILES))
+CUDA129_ONLY = $(filter pkg.tllama-server.cuda12.9-only,$(DEB_BUILD_PROFILES))
 BACKEND_ONLY = $(strip $(VULKAN_ONLY) $(ROCM_ONLY) $(CUDA_ONLY))
 SELECTED_PROFILES = $(strip $(CPU_ONLY) $(VULKAN_ONLY) $(ROCM_ONLY) $(CUDA_ONLY))
 
 ifneq ($(word 2,$(SELECTED_PROFILES)),)
 $(error select only one tllama-server build profile)
 endif
+
+ifneq ($(CUDA129_ONLY),)
+CUDA_VERSION = 12.9
+CUDA_ROOT = /usr/local/cuda-12.9
+CUDA_SHADOW = $(CURDIR)/build-cuda12.9-sdk
+CUDA_COMPILER = $(CUDA_SHADOW)/bin/nvcc
+CUDA_TARGETS := $(CUDA_TARGETS);120a-real;121a-real
+CUDA_RPATH = $(CUDA_ROOT)/targets/x86_64-linux/lib
+CUDA_LIBRARY_PATH = $(CUDA_RPATH)
+CUDA_TOOLKIT_OPTION = -DCUDAToolkit_ROOT=$(CUDA_SHADOW)
+CUDA_SHLIBDEPS_FLAGS = --ignore-missing-info
+endif
+CUDA_VERSION_PATTERN = $(subst .,\.,$(CUDA_VERSION))
 
 ifeq ($(BACKEND_ONLY),)
 BUILD_DIR = build-debian
@@ -34,7 +54,7 @@ ifneq ($(ROCM_ONLY),)
 BUILD_DIR = build-debian-rocm10.1
 else
 ifneq ($(CUDA_ONLY),)
-BUILD_DIR = build-debian-cuda12.4
+BUILD_DIR = build-debian-cuda$(CUDA_VERSION)
 else
 BUILD_DIR = build-debian-vulkan
 endif
@@ -90,16 +110,29 @@ ifneq ($(ROCM_ONLY),)
 		-DGGML_VULKAN=OFF \
 		-DGGML_SYCL=OFF
 else ifneq ($(CUDA_ONLY),)
-	/usr/bin/nvcc --version | grep -Eq 'release 12\.4([, ])'
+ifneq ($(CUDA129_ONLY),)
+	# Keep NVIDIA-owned headers untouched; patch only this build-local shadow.
+	$(CUDA_ROOT)/bin/nvcc --version | grep -Eq 'release 12\.9([, ])'
+	rm -rf $(CUDA_SHADOW)
+	cp -as $(CUDA_ROOT)/. $(CUDA_SHADOW)/
+	rm -f $(CUDA_SHADOW)/bin/nvcc
+	cp -a $(CUDA_ROOT)/bin/nvcc $(CUDA_SHADOW)/bin/nvcc
+	rm -f $(CUDA_SHADOW)/targets/x86_64-linux/include/crt/math_functions.h
+	cp -a $(CUDA_ROOT)/targets/x86_64-linux/include/crt/math_functions.h \
+		$(CUDA_SHADOW)/targets/x86_64-linux/include/crt/math_functions.h
+	python3 debian/cuda12.9-glibc2.41.py \
+		$(CUDA_SHADOW)/targets/x86_64-linux/include/crt/math_functions.h
+endif
+	$(CUDA_COMPILER) --version | grep -Eq 'release $(CUDA_VERSION_PATTERN)([, ])'
 	# Include a dedicated sm_60 image for Pascal P100 FP16 kernels.
-	# /usr/bin/nvcc selects Debian's toolkit, independently of /usr/local CUDA.
 	dh_auto_configure -- \
 		-DCMAKE_BUILD_TYPE=Release \
 		-DTLLAMA_BUILD_SERVER=OFF \
 		-DTLLAMA_INSTALL_LIBDIR=lib/tllama/server \
-		-DTLLAMA_BACKEND_INSTALL_DIR=lib/tllama/server/backends/cuda12.4 \
-		-DTLLAMA_BACKEND_RPATH= \
-		-DCMAKE_CUDA_COMPILER=/usr/bin/nvcc \
+		-DTLLAMA_BACKEND_INSTALL_DIR=lib/tllama/server/backends/cuda$(CUDA_VERSION) \
+		-DTLLAMA_BACKEND_RPATH=$(CUDA_RPATH) \
+		$(CUDA_TOOLKIT_OPTION) \
+		-DCMAKE_CUDA_COMPILER=$(CUDA_COMPILER) \
 		-DCMAKE_CUDA_ARCHITECTURES="$(CUDA_TARGETS)" \
 		-DGGML_CPU=OFF \
 		-DGGML_BLAS=OFF \
@@ -193,11 +226,11 @@ ifneq ($(ROCM_ONLY),)
 endif
 
 ifneq ($(CUDA_ONLY),)
-	# Debian supplies CUDA runtime metadata; libcuda may resolve to a toolkit
-	# stub during linking, so local metadata maps it to the real driver package.
+	# NVIDIA SDK packages have explicit runtime dependencies in control.
+	# Local metadata maps libcuda toolkit stubs to the real driver package.
 	dh_shlibdeps -p$(CUDA_PACKAGE) \
-		-l$(CURDIR)/$(BUILD_DIR)/bin:/usr/lib/$(DEB_HOST_MULTIARCH) \
-		-- -x$(CORE_PACKAGE)
+		-l$(CURDIR)/$(BUILD_DIR)/bin:$(CUDA_LIBRARY_PATH) \
+		-- -x$(CORE_PACKAGE) $(CUDA_SHLIBDEPS_FLAGS)
 endif
 
 override_dh_auto_clean:
@@ -205,5 +238,9 @@ override_dh_auto_clean:
 	# output from every profile before dpkg-source collects debian/.
 	rm -rf $(BUILD_DIR) debian/tllama-server \
 		debian/$(CORE_PACKAGE) debian/$(CPU_PACKAGE) debian/$(VULKAN_PACKAGE) \
-		debian/$(ROCM_PACKAGE) debian/$(CUDA_PACKAGE)
+		debian/$(ROCM_PACKAGE) debian/tllama-server-backend-cuda12.4 \
+		debian/tllama-server-backend-cuda12.9
 	rm -f debian/shlibs.local debian/*.substvars debian/*.debhelper
+ifneq ($(CUDA129_ONLY),)
+	rm -rf $(CUDA_SHADOW)
+endif
