@@ -1,2 +1,2 @@
 # Manual build/staging trees are not upstream source modifications.
-extend-diff-ignore = "^(build[^/]*|stage[^/]*|dist|[.]venv)(/|$)|(^|/)__pycache__(/|$)"
+extend-diff-ignore = "^(build[^/]*|obj-[^/]*|stage[^/]*|dist|[.]venv)(/|$)|(^|/)__pycache__(/|$)"

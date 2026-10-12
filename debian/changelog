@@ -1,3 +1,13 @@
+tllama-server (0.6.0~dev+b11552.1-1) stable; urgency=medium
+
+  * Update the native snapshot to tolerate missing SYCL devices during
+    backend discovery and continue loading other accelerators.
+  * Include separate ROCm 10.1, CUDA 12.4/12.9/13.3 and Intel SYCL packages
+    alongside the private server and CPU/Vulkan backends.
+  * Select each profile's build directory in direct debhelper overrides.
+
+ -- NemaChybu team APT archive <maintainers@nemachybu.cz>  Mon, 12 Oct 2026 15:30:44 +0200
+
 tllama-server (0.6.0~dev+b11552-1) stable; urgency=medium
 
   * Align the distribution version with the pinned native 0.6.0-dev snapshot.

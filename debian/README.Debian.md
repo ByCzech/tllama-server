@@ -16,7 +16,8 @@ The initial package set targets Debian 13 amd64. It contains:
 All native components use the pinned fork revision in `cmake/NativeSource.cmake`.
 The native gfx1250 fix is already part of that source; it is not reapplied by
 quilt. The Debian version follows the native release series: this pinned
-development snapshot uses `0.6.0~dev+b11552`, with a Debian revision appended.
+development snapshot uses `0.6.0~dev+b11552.1`, with a Debian revision appended.
+The `.1` identifies an updated fork snapshot based on the same upstream build.
 
 ## Source export and build
 
