@@ -8,6 +8,7 @@ CPU_PACKAGE = tllama-server-backend-cpu
 VULKAN_PACKAGE = tllama-server-backend-vulkan
 CUDA_PACKAGE = tllama-server-backend-cuda$(CUDA_VERSION)
 CUDA_VERSION = 12.4
+CUDA_DRIVER_MIN = 525.60.13
 CUDA_COMPILER = /usr/bin/nvcc
 CUDA_RPATH =
 CUDA_LIBRARY_PATH = /usr/lib/$(DEB_HOST_MULTIARCH)
@@ -21,8 +22,9 @@ RUNTIME_DIR = usr/lib/tllama/server
 CPU_ONLY = $(filter pkg.tllama-server.cpu-only,$(DEB_BUILD_PROFILES))
 VULKAN_ONLY = $(filter pkg.tllama-server.vulkan-only,$(DEB_BUILD_PROFILES))
 ROCM_ONLY = $(filter pkg.tllama-server.rocm-only,$(DEB_BUILD_PROFILES))
-CUDA_ONLY = $(filter pkg.tllama-server.cuda12.4-only pkg.tllama-server.cuda12.9-only,$(DEB_BUILD_PROFILES))
+CUDA_ONLY = $(filter pkg.tllama-server.cuda12.4-only pkg.tllama-server.cuda12.9-only pkg.tllama-server.cuda13.3-only,$(DEB_BUILD_PROFILES))
 CUDA129_ONLY = $(filter pkg.tllama-server.cuda12.9-only,$(DEB_BUILD_PROFILES))
+CUDA133_ONLY = $(filter pkg.tllama-server.cuda13.3-only,$(DEB_BUILD_PROFILES))
 BACKEND_ONLY = $(strip $(VULKAN_ONLY) $(ROCM_ONLY) $(CUDA_ONLY))
 SELECTED_PROFILES = $(strip $(CPU_ONLY) $(VULKAN_ONLY) $(ROCM_ONLY) $(CUDA_ONLY))
 
@@ -39,6 +41,17 @@ CUDA_TARGETS := $(CUDA_TARGETS);120a-real;121a-real
 CUDA_RPATH = $(CUDA_ROOT)/targets/x86_64-linux/lib
 CUDA_LIBRARY_PATH = $(CUDA_RPATH)
 CUDA_TOOLKIT_OPTION = -DCUDAToolkit_ROOT=$(CUDA_SHADOW)
+CUDA_SHLIBDEPS_FLAGS = --ignore-missing-info
+endif
+ifneq ($(CUDA133_ONLY),)
+CUDA_VERSION = 13.3
+CUDA_DRIVER_MIN = 580
+CUDA_ROOT = /usr/local/cuda-13.3
+CUDA_COMPILER = $(CUDA_ROOT)/bin/nvcc
+CUDA_TARGETS = 75-virtual;80-virtual;86-real;89-real;90-virtual;120a-real;121a-real
+CUDA_RPATH = $(CUDA_ROOT)/targets/x86_64-linux/lib
+CUDA_LIBRARY_PATH = $(CUDA_RPATH)
+CUDA_TOOLKIT_OPTION = -DCUDAToolkit_ROOT=$(CUDA_ROOT)
 CUDA_SHLIBDEPS_FLAGS = --ignore-missing-info
 endif
 CUDA_VERSION_PATTERN = $(subst .,\.,$(CUDA_VERSION))
@@ -124,7 +137,7 @@ ifneq ($(CUDA129_ONLY),)
 		$(CUDA_SHADOW)/targets/x86_64-linux/include/crt/math_functions.h
 endif
 	$(CUDA_COMPILER) --version | grep -Eq 'release $(CUDA_VERSION_PATTERN)([, ])'
-	# Include a dedicated sm_60 image for Pascal P100 FP16 kernels.
+	# Use explicit GPU targets, independently of the build host hardware.
 	dh_auto_configure -- \
 		-DCMAKE_BUILD_TYPE=Release \
 		-DTLLAMA_BUILD_SERVER=OFF \
@@ -196,7 +209,7 @@ override_dh_makeshlibs:
 			printf 'lib%s 0 $(CORE_PACKAGE) (= $(DEB_VERSION))\n' "$$library"; \
 		done; \
 		if [ -n "$(CUDA_ONLY)" ]; then \
-			printf 'libcuda 1 libcuda1 (>= 525.60.13)\n'; \
+			printf 'libcuda 1 libcuda1 (>= $(CUDA_DRIVER_MIN))\n'; \
 		fi; \
 	} > debian/shlibs.local
 
@@ -239,7 +252,7 @@ override_dh_auto_clean:
 	rm -rf $(BUILD_DIR) debian/tllama-server \
 		debian/$(CORE_PACKAGE) debian/$(CPU_PACKAGE) debian/$(VULKAN_PACKAGE) \
 		debian/$(ROCM_PACKAGE) debian/tllama-server-backend-cuda12.4 \
-		debian/tllama-server-backend-cuda12.9
+		debian/tllama-server-backend-cuda12.9 debian/tllama-server-backend-cuda13.3
 	rm -f debian/shlibs.local debian/*.substvars debian/*.debhelper
 ifneq ($(CUDA129_ONLY),)
 	rm -rf $(CUDA_SHADOW)

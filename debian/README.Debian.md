@@ -10,6 +10,7 @@ The initial package set targets Debian 13 amd64. It contains:
 - `tllama-server-backend-rocm10.1`: the optional ROCm 10.1 HIP plugin.
 - `tllama-server-backend-cuda12.4`: the optional Debian CUDA 12.4 plugin.
 - `tllama-server-backend-cuda12.9`: the optional NVIDIA CUDA 12.9 plugin.
+- `tllama-server-backend-cuda13.3`: the optional NVIDIA CUDA 13.3 plugin.
 
 All native components use the pinned fork revision in `cmake/NativeSource.cmake`.
 The native gfx1250 fix is already part of that source; it is not reapplied by
@@ -158,3 +159,21 @@ The plugin is installed under `backends/cuda12.9` and participates in the same
 `tllama-server-cuda` alternatives group as CUDA 12.4, with a higher priority.
 Its runtime paths point to the real versioned SDK library directory, never to
 the build-local shadow. Runtime and cuBLAS package dependencies are explicit.
+
+## CUDA 13.3 package
+
+```sh
+dpkg-checkbuilddeps -Ppkg.tllama-server.cuda13.3-only
+debuild -Ppkg.tllama-server.cuda13.3-only -j"$(nproc)"
+```
+
+This profile builds only the CUDA 13.3 package in `build-debian-cuda13.3`, using
+`cuda-toolkit-13-3` under `/usr/local/cuda-13.3`. It uses the SDK directly,
+without the CUDA 12.9 header workaround. The GPU targets start at Turing and
+include Blackwell sm_120a and sm_121a images; CUDA 12.x packages retain support
+for Maxwell, Pascal and Volta.
+
+The plugin is installed under `backends/cuda13.3`, resolves runtime libraries
+from the versioned SDK, and uses the `tllama-server-cuda` alternatives group
+with priority 133. Runtime and cuBLAS dependencies are explicit; local driver
+metadata requires `libcuda1 (>= 580)`.

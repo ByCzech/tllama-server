@@ -1,0 +1,4 @@
+Name: tllama-server-cuda
+Link: /usr/lib/tllama/server/libggml-cuda.so
+Alternative: /usr/lib/tllama/server/backends/cuda13.3/libggml-cuda.so
+Priority: 133

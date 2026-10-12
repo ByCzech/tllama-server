@@ -26,8 +26,13 @@ GPU support is provided by optional packages:
   including Pascal Tesla P100. A compatible NVIDIA driver is required; CUDA
   runtime libraries are installed through package dependencies.
 - `tllama-server-backend-cuda12.9` additionally supports Blackwell GPUs.
-  CUDA 12.4 and 12.9 plugins can be installed together; choose the default with
-  `sudo update-alternatives --config tllama-server-cuda`.
+- `tllama-server-backend-cuda13.3` supports Turing through Blackwell GPUs and
+  requires an NVIDIA 580 or newer driver. For Maxwell, Pascal (including P100)
+  and Volta, use a CUDA 12.x backend.
+
+CUDA plugins can be installed together. Automatic selection prefers the highest
+version; to select a suitable backend for an older GPU, run
+`sudo update-alternatives --config tllama-server-cuda`.
 
 GPU backends require the matching core and CPU package versions. The ROCm 10.1
 package does not contain kernels for legacy Vega `gfx900`, `gfx906` or `gfx90c`.
