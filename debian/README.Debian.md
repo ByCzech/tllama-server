@@ -11,6 +11,7 @@ The initial package set targets Debian 13 amd64. It contains:
 - `tllama-server-backend-cuda12.4`: the optional Debian CUDA 12.4 plugin.
 - `tllama-server-backend-cuda12.9`: the optional NVIDIA CUDA 12.9 plugin.
 - `tllama-server-backend-cuda13.3`: the optional NVIDIA CUDA 13.3 plugin.
+- `tllama-server-backend-sycl`: the optional Intel oneAPI SYCL plugin.
 
 All native components use the pinned fork revision in `cmake/NativeSource.cmake`.
 The native gfx1250 fix is already part of that source; it is not reapplied by
@@ -49,8 +50,8 @@ metadata as appropriate before exporting a new source version.
 
 ## Build profiles
 
-Without a profile, the build produces the four CPU/Vulkan packages. ROCm and
-CUDA are built explicitly with their own profiles. Profiles select the
+Without a profile, the build produces the four CPU/Vulkan packages. ROCm, CUDA and
+SYCL are built explicitly with their own profiles. Profiles select the
 package set, build dependencies and native CMake targets:
 
 - `pkg.tllama-server.cpu-only`: metapackage, core and CPU/OpenBLAS in
@@ -177,3 +178,28 @@ The plugin is installed under `backends/cuda13.3`, resolves runtime libraries
 from the versioned SDK, and uses the `tllama-server-cuda` alternatives group
 with priority 133. Runtime and cuBLAS dependencies are explicit; local driver
 metadata requires `libcuda1 (>= 580)`.
+
+## SYCL package
+
+```sh
+dpkg-checkbuilddeps -Ppkg.tllama-server.sycl-only
+debuild -Ppkg.tllama-server.sycl-only -j"$(nproc)"
+```
+
+This profile builds only the SYCL package in `build-debian-sycl`. It selects
+oneAPI icx/icpx, oneMKL, oneDNN and TBB explicitly under `/opt/intel/oneapi`,
+without requiring an interactive `setvars.sh`. The native GCC installation
+reported by the default `g++` supplies the C++ runtime and headers, avoiding
+accidental selection of installed cross toolchains. Debian hardening flags are
+preserved alongside this GCC selection; GCC-specific LTO flags are disabled
+for the IntelLLVM profile.
+
+The Intel target enables FP16, SYCL graphs, host-memory fallback, Level Zero
+and oneDNN. The device architecture is left unset to produce portable SYCL
+device code rather than an image restricted to the build host GPU.
+
+The module is installed under `backends/sycl`; `tllama-server-sycl` alternatives
+supplies the loader link at `/usr/lib/tllama/server/libggml-sycl.so`. Its runtime
+paths include the compiler, oneMKL, oneDNN and TBB library directories. oneAPI
+runtime package dependencies are explicit, while shlibdeps collects standard
+Debian dependencies. Building does not require an Intel GPU.

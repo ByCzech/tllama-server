@@ -1,0 +1,4 @@
+Name: tllama-server-sycl
+Link: /usr/lib/tllama/server/libggml-sycl.so
+Alternative: /usr/lib/tllama/server/backends/sycl/libggml-sycl.so
+Priority: 100

@@ -10,7 +10,7 @@ manage server processes; the executable can also be started directly.
 - Multimodal models with a matching projector file.
 - CPU inference with automatic selection of the supported CPU instruction set
   and an OpenBLAS backend.
-- Optional Vulkan, ROCm/HIP and CUDA GPU backends.
+- Optional Vulkan, ROCm/HIP, CUDA and Intel SYCL GPU backends.
 - The HIP backend distinguishes `gfx1250` and selects compatible kernels for
   that architecture, extending the pinned upstream implementation.
 
@@ -29,6 +29,10 @@ GPU support is provided by optional packages:
 - `tllama-server-backend-cuda13.3` supports Turing through Blackwell GPUs and
   requires an NVIDIA 580 or newer driver. For Maxwell, Pascal (including P100)
   and Volta, use a CUDA 12.x backend.
+
+- `tllama-server-backend-sycl` supports Intel GPUs through oneAPI SYCL and
+  Level Zero, with FP16 kernels, oneMKL and oneDNN. A compatible Intel compute
+  driver is required; oneAPI runtime libraries are package dependencies.
 
 CUDA plugins can be installed together. Automatic selection prefers the highest
 version; to select a suitable backend for an older GPU, run
@@ -58,7 +62,8 @@ List available acceleration devices:
 To use a listed GPU, replace `--n-gpu-layers 0` with, for example,
 `--device Vulkan0 --n-gpu-layers 99` or
 `--device ROCm0 --n-gpu-layers 99` or
-`--device CUDA0 --n-gpu-layers 99`. The layer count must suit the model and
+`--device CUDA0 --n-gpu-layers 99`. For SYCL, use the device name reported
+by `--list-devices`. The layer count must suit the model and
 available GPU memory. CPU devices are omitted from `--list-devices`.
 
 For a supported multimodal model, also specify its matching projector with
