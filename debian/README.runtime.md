@@ -50,7 +50,8 @@ For a local CPU server:
 ```sh
 /usr/lib/tllama/server/tllama-server \
     --model /path/to/model.gguf --alias local \
-    --host 127.0.0.1 --port 8080 --n-gpu-layers 0
+    --host 127.0.0.1 --port 8080 \
+    --device none --n-gpu-layers 0 --no-op-offload
 ```
 
 List available acceleration devices:
@@ -59,12 +60,28 @@ List available acceleration devices:
 /usr/lib/tllama/server/tllama-server --list-devices
 ```
 
-To use a listed GPU, replace `--n-gpu-layers 0` with, for example,
+To use a listed GPU, replace the CPU options
+`--device none --n-gpu-layers 0 --no-op-offload` with, for example,
 `--device Vulkan0 --n-gpu-layers 99` or
 `--device ROCm0 --n-gpu-layers 99` or
 `--device CUDA0 --n-gpu-layers 99`. For SYCL, use the device name reported
 by `--list-devices`. The layer count must suit the model and
 available GPU memory. CPU devices are omitted from `--list-devices`.
+
+For example, start a Vulkan server with one request slot and a 2048-token
+context:
+
+```sh
+/usr/lib/tllama/server/tllama-server \
+    --model /path/to/model.gguf --alias local \
+    --host 127.0.0.1 --port 8080 \
+    --device Vulkan0 --n-gpu-layers 99 --ctx-size 2048 --parallel 1
+```
+
+Explicit device selection controls which GPU is used for inference. Installed
+plugins may still print initialization messages for other backends.
+Setting `--n-gpu-layers 0` alone does not disable offloading other operations;
+use all three CPU options above for CPU inference.
 
 For a supported multimodal model, also specify its matching projector with
 `--mmproj /path/to/projector.gguf`.
@@ -74,14 +91,20 @@ For a supported multimodal model, also specify its matching projector with
 With the example server running:
 
 ```sh
-curl http://127.0.0.1:8080/health
-curl http://127.0.0.1:8080/v1/chat/completions \
+curl --max-time 10 --fail-with-body http://127.0.0.1:8080/health
+curl --max-time 120 --fail-with-body http://127.0.0.1:8080/v1/chat/completions \
     -H 'Content-Type: application/json' \
-    -d '{"model":"local","messages":[{"role":"user","content":"Hello!"}],"max_tokens":64}'
+    -d '{"model":"local","messages":[{"role":"user","content":"Hello!"}],"reasoning_effort":"none","max_tokens":128,"stream":false}'
 ```
 
 Use `http://127.0.0.1:8080/v1` as the base URL in an OpenAI-compatible client.
 Available model features depend on the GGUF model and its chat template.
+During model loading, `/health` returns HTTP 503; wait for `{"status":"ok"}`
+before sending the test request. The example disables reasoning when supported
+by the model's template. To enable reasoning, omit `reasoning_effort` and allow
+enough output tokens for both reasoning and the final answer. A response with
+`finish_reason: "length"` may contain only `reasoning_content` if the token
+limit is reached before the final answer.
 
 For all server options:
 
