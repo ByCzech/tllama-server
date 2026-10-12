@@ -97,8 +97,11 @@ else
 BUILD_VULKAN = OFF
 endif
 
+# Keep direct override invocations in the same tree as the dh sequence.
+AUTO_BUILD_OPTIONS = --buildsystem=cmake+ninja --builddirectory=$(BUILD_DIR)
+
 %:
-	dh $@ --buildsystem=cmake+ninja --builddirectory=$(BUILD_DIR)
+	dh $@ $(AUTO_BUILD_OPTIONS)
 
 override_dh_auto_configure:
 ifneq ($(ROCM_ONLY),)
@@ -117,7 +120,7 @@ ifneq ($(ROCM_ONLY),)
 		HIP_DEVICE_LIB_PATH=$(ROCM_ROOT)/amdgcn/bitcode \
 		DEVICE_LIB_PATH=$(ROCM_ROOT)/amdgcn/bitcode \
 		PATH=$(ROCM_ROOT)/bin:$(ROCM_ROOT)/lib/llvm/bin:$$PATH \
-		dh_auto_configure -- \
+		dh_auto_configure $(AUTO_BUILD_OPTIONS) -- \
 		-DCMAKE_BUILD_TYPE=Release \
 		-DTLLAMA_BUILD_SERVER=OFF \
 		-DTLLAMA_INSTALL_LIBDIR=lib/tllama/server \
@@ -155,7 +158,7 @@ ifneq ($(CUDA129_ONLY),)
 endif
 	$(CUDA_COMPILER) --version | grep -Eq 'release $(CUDA_VERSION_PATTERN)([, ])'
 	# Use explicit GPU targets, independently of the build host hardware.
-	dh_auto_configure -- \
+	dh_auto_configure $(AUTO_BUILD_OPTIONS) -- \
 		-DCMAKE_BUILD_TYPE=Release \
 		-DTLLAMA_BUILD_SERVER=OFF \
 		-DTLLAMA_INSTALL_LIBDIR=lib/tllama/server \
@@ -181,7 +184,7 @@ else ifneq ($(SYCL_ONLY),)
 	test -d $(ONEAPI_DNNL_ROOT)
 	test -f $(ONEAPI_TBB_ROOT)/lib/cmake/tbb/TBBConfig.cmake
 	# Pin native GCC to avoid IntelLLVM selecting a gcc-cross installation.
-	$(ONEAPI_ENV) dh_auto_configure -- \
+	$(ONEAPI_ENV) dh_auto_configure $(AUTO_BUILD_OPTIONS) -- \
 		-DCMAKE_BUILD_TYPE=Release \
 		-DCMAKE_C_COMPILER=$(ONEAPI_COMPILER_ROOT)/bin/icx \
 		-DCMAKE_CXX_COMPILER=$(ONEAPI_COMPILER_ROOT)/bin/icpx \
@@ -207,7 +210,7 @@ else ifneq ($(SYCL_ONLY),)
 		-DGGML_SYCL_DNN=ON \
 		-DGGML_SYCL_DEVICE_ARCH=
 else
-	dh_auto_configure -- \
+	dh_auto_configure $(AUTO_BUILD_OPTIONS) -- \
 		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
 		-DTLLAMA_BUILD_SERVER=$(BUILD_SERVER) \
 		-DTLLAMA_INSTALL_LIBDIR=lib/tllama/server \
@@ -225,9 +228,9 @@ endif
 
 override_dh_auto_build:
 ifneq ($(SYCL_ONLY),)
-	$(ONEAPI_ENV) dh_auto_build
+	$(ONEAPI_ENV) dh_auto_build $(AUTO_BUILD_OPTIONS)
 else
-	dh_auto_build
+	dh_auto_build $(AUTO_BUILD_OPTIONS)
 endif
 
 override_dh_auto_test:
