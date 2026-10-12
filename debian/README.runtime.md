@@ -10,7 +10,7 @@ manage server processes; the executable can also be started directly.
 - Multimodal models with a matching projector file.
 - CPU inference with automatic selection of the supported CPU instruction set
   and an OpenBLAS backend.
-- Optional Vulkan and ROCm/HIP GPU backends.
+- Optional Vulkan, ROCm/HIP and CUDA GPU backends.
 - The HIP backend distinguishes `gfx1250` and selects compatible kernels for
   that architecture, extending the pinned upstream implementation.
 
@@ -22,6 +22,9 @@ GPU support is provided by optional packages:
 - `tllama-server-backend-vulkan` uses the system Vulkan drivers.
 - `tllama-server-backend-rocm10.1` uses AMD ROCm 10.1. The required ROCm runtime
   and BLAS packages are installed through package dependencies.
+- `tllama-server-backend-cuda12.4` supports NVIDIA Maxwell through Hopper GPUs,
+  including Pascal Tesla P100. A compatible NVIDIA driver is required; CUDA
+  runtime libraries are installed through package dependencies.
 
 GPU backends require the matching core and CPU package versions. The ROCm 10.1
 package does not contain kernels for legacy Vega `gfx900`, `gfx906` or `gfx90c`.
@@ -46,7 +49,8 @@ List available acceleration devices:
 
 To use a listed GPU, replace `--n-gpu-layers 0` with, for example,
 `--device Vulkan0 --n-gpu-layers 99` or
-`--device ROCm0 --n-gpu-layers 99`. The layer count must suit the model and
+`--device ROCm0 --n-gpu-layers 99` or
+`--device CUDA0 --n-gpu-layers 99`. The layer count must suit the model and
 available GPU memory. CPU devices are omitted from `--list-devices`.
 
 For a supported multimodal model, also specify its matching projector with

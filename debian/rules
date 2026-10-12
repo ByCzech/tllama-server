@@ -6,6 +6,8 @@ export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 CORE_PACKAGE = tllama-server-core
 CPU_PACKAGE = tllama-server-backend-cpu
 VULKAN_PACKAGE = tllama-server-backend-vulkan
+CUDA_PACKAGE = tllama-server-backend-cuda12.4
+CUDA_TARGETS = 50-virtual;60;61-virtual;70-virtual;75-virtual;80-virtual;86-real;89-real;90-virtual
 ROCM_PACKAGE = tllama-server-backend-rocm10.1
 ROCM_ROOT = /opt/rocm/core-10.1
 ROCM_TARGETS = gfx908;gfx90a;gfx942;gfx950;gfx1010;gfx1011;gfx1012;gfx1030;gfx1031;gfx1032;gfx1033;gfx1034;gfx1035;gfx1036;gfx1100;gfx1101;gfx1102;gfx1103;gfx1150;gfx1151;gfx1152;gfx1153;gfx1200;gfx1201;gfx1250
@@ -13,8 +15,9 @@ RUNTIME_DIR = usr/lib/tllama/server
 CPU_ONLY = $(filter pkg.tllama-server.cpu-only,$(DEB_BUILD_PROFILES))
 VULKAN_ONLY = $(filter pkg.tllama-server.vulkan-only,$(DEB_BUILD_PROFILES))
 ROCM_ONLY = $(filter pkg.tllama-server.rocm-only,$(DEB_BUILD_PROFILES))
-BACKEND_ONLY = $(strip $(VULKAN_ONLY) $(ROCM_ONLY))
-SELECTED_PROFILES = $(strip $(CPU_ONLY) $(VULKAN_ONLY) $(ROCM_ONLY))
+CUDA_ONLY = $(filter pkg.tllama-server.cuda12.4-only,$(DEB_BUILD_PROFILES))
+BACKEND_ONLY = $(strip $(VULKAN_ONLY) $(ROCM_ONLY) $(CUDA_ONLY))
+SELECTED_PROFILES = $(strip $(CPU_ONLY) $(VULKAN_ONLY) $(ROCM_ONLY) $(CUDA_ONLY))
 
 ifneq ($(word 2,$(SELECTED_PROFILES)),)
 $(error select only one tllama-server build profile)
@@ -30,11 +33,15 @@ BUILD_CPU = OFF
 ifneq ($(ROCM_ONLY),)
 BUILD_DIR = build-debian-rocm10.1
 else
+ifneq ($(CUDA_ONLY),)
+BUILD_DIR = build-debian-cuda12.4
+else
 BUILD_DIR = build-debian-vulkan
 endif
 endif
+endif
 
-ifeq ($(strip $(CPU_ONLY) $(ROCM_ONLY)),)
+ifeq ($(strip $(CPU_ONLY) $(ROCM_ONLY) $(CUDA_ONLY)),)
 BUILD_VULKAN = ON
 else
 BUILD_VULKAN = OFF
@@ -82,6 +89,26 @@ ifneq ($(ROCM_ONLY),)
 		-DGGML_CUDA=OFF \
 		-DGGML_VULKAN=OFF \
 		-DGGML_SYCL=OFF
+else ifneq ($(CUDA_ONLY),)
+	/usr/bin/nvcc --version | grep -Eq 'release 12\.4([, ])'
+	# Include a dedicated sm_60 image for Pascal P100 FP16 kernels.
+	# /usr/bin/nvcc selects Debian's toolkit, independently of /usr/local CUDA.
+	dh_auto_configure -- \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DTLLAMA_BUILD_SERVER=OFF \
+		-DTLLAMA_INSTALL_LIBDIR=lib/tllama/server \
+		-DTLLAMA_BACKEND_INSTALL_DIR=lib/tllama/server/backends/cuda12.4 \
+		-DTLLAMA_BACKEND_RPATH= \
+		-DCMAKE_CUDA_COMPILER=/usr/bin/nvcc \
+		-DCMAKE_CUDA_ARCHITECTURES="$(CUDA_TARGETS)" \
+		-DGGML_CPU=OFF \
+		-DGGML_BLAS=OFF \
+		-DGGML_CUDA=ON \
+		-DGGML_CUDA_GRAPHS=ON \
+		-DGGML_CUDA_NCCL=OFF \
+		-DGGML_HIP=OFF \
+		-DGGML_VULKAN=OFF \
+		-DGGML_SYCL=OFF
 else
 	dh_auto_configure -- \
 		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
@@ -113,13 +140,18 @@ ifeq ($(BACKEND_ONLY),)
 		cmake --install $(BUILD_DIR) --component backend-blas
 	python3 debian/check-runtime.py debian/$(CORE_PACKAGE) debian/$(CPU_PACKAGE)
 endif
-ifeq ($(strip $(CPU_ONLY) $(ROCM_ONLY)),)
+ifeq ($(strip $(CPU_ONLY) $(ROCM_ONLY) $(CUDA_ONLY)),)
 	DESTDIR=$(CURDIR)/debian/$(VULKAN_PACKAGE) \
 		cmake --install $(BUILD_DIR) --component backend-vulkan
 endif
 ifneq ($(ROCM_ONLY),)
 	DESTDIR=$(CURDIR)/debian/$(ROCM_PACKAGE) \
 		cmake --install $(BUILD_DIR) --component backend-hip
+endif
+
+ifneq ($(CUDA_ONLY),)
+	DESTDIR=$(CURDIR)/debian/$(CUDA_PACKAGE) \
+		cmake --install $(BUILD_DIR) --component backend-cuda
 endif
 
 override_dh_makeshlibs:
@@ -130,6 +162,9 @@ override_dh_makeshlibs:
 		for library in ggml-base ggml llama llama-common mtmd; do \
 			printf 'lib%s 0 $(CORE_PACKAGE) (= $(DEB_VERSION))\n' "$$library"; \
 		done; \
+		if [ -n "$(CUDA_ONLY)" ]; then \
+			printf 'libcuda 1 libcuda1 (>= 525.60.13)\n'; \
+		fi; \
 	} > debian/shlibs.local
 
 override_dh_shlibdeps:
@@ -141,7 +176,7 @@ ifeq ($(BACKEND_ONLY),)
 		-l$(CURDIR)/debian/$(CORE_PACKAGE)/$(RUNTIME_DIR) \
 		-- -x$(CORE_PACKAGE)
 endif
-ifeq ($(strip $(CPU_ONLY) $(ROCM_ONLY)),)
+ifeq ($(strip $(CPU_ONLY) $(ROCM_ONLY) $(CUDA_ONLY)),)
 	# In a backend-only build, resolve ggml-base from this build tree. Local
 	# shlibs metadata maps it to the exact core package version; the common
 	# library itself is not included in the Vulkan package.
@@ -157,10 +192,18 @@ ifneq ($(ROCM_ONLY),)
 		-- -x$(CORE_PACKAGE) --ignore-missing-info
 endif
 
+ifneq ($(CUDA_ONLY),)
+	# Debian supplies CUDA runtime metadata; libcuda may resolve to a toolkit
+	# stub during linking, so local metadata maps it to the real driver package.
+	dh_shlibdeps -p$(CUDA_PACKAGE) \
+		-l$(CURDIR)/$(BUILD_DIR)/bin:/usr/lib/$(DEB_HOST_MULTIARCH) \
+		-- -x$(CORE_PACKAGE)
+endif
+
 override_dh_auto_clean:
 	# Preserve the other profile's CMake tree, but remove package staging
 	# output from every profile before dpkg-source collects debian/.
 	rm -rf $(BUILD_DIR) debian/tllama-server \
 		debian/$(CORE_PACKAGE) debian/$(CPU_PACKAGE) debian/$(VULKAN_PACKAGE) \
-		debian/$(ROCM_PACKAGE)
+		debian/$(ROCM_PACKAGE) debian/$(CUDA_PACKAGE)
 	rm -f debian/shlibs.local debian/*.substvars debian/*.debhelper

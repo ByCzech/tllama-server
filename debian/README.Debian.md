@@ -8,6 +8,7 @@ The initial package set targets Debian 13 amd64. It contains:
 - `tllama-server-backend-vulkan`: the Vulkan compute plugin, with dependencies
   on the exactly matching core and CPU packages.
 - `tllama-server-backend-rocm10.1`: the optional ROCm 10.1 HIP plugin.
+- `tllama-server-backend-cuda12.4`: the optional Debian CUDA 12.4 plugin.
 
 All native components use the pinned fork revision in `cmake/NativeSource.cmake`.
 The native gfx1250 fix is already part of that source; it is not reapplied by
@@ -46,8 +47,8 @@ metadata as appropriate before exporting a new source version.
 
 ## Build profiles
 
-Without a profile, the build produces the four CPU/Vulkan packages. ROCm is
-built explicitly with its own profile. Profiles select the
+Without a profile, the build produces the four CPU/Vulkan packages. ROCm and
+CUDA are built explicitly with their own profiles. Profiles select the
 package set, build dependencies and native CMake targets:
 
 - `pkg.tllama-server.cpu-only`: metapackage, core and CPU/OpenBLAS in
@@ -114,3 +115,24 @@ explicitly because AMD's packages do not consistently provide shlibs metadata.
 
 Package changes contained within `debian/` can reuse the existing orig archive.
 The source-only build guide is not installed in the user-facing package docs.
+
+## CUDA 12.4 package
+
+```sh
+dpkg-checkbuilddeps -Ppkg.tllama-server.cuda12.4-only
+debuild -Ppkg.tllama-server.cuda12.4-only -j"$(nproc)"
+```
+
+This profile builds only the CUDA package in `build-debian-cuda12.4`, using
+`nvidia-cuda-toolkit` and `/usr/bin/nvcc` from Debian 13. It cannot be combined
+with another tllama-server profile. CUDA graphs are enabled and NCCL is disabled.
+The architecture list is independent of GPUs present on the build machine and
+includes a native/virtual sm_60 image for Pascal P100 FP16 support.
+
+The installed module is
+`/usr/lib/tllama/server/backends/cuda12.4/libggml-cuda.so`.
+The `tllama-server-cuda` alternatives group supplies the default loader link at
+`/usr/lib/tllama/server/libggml-cuda.so`. Common libraries are resolved relative
+to the module, while CUDA runtime libraries use Debian's system library paths.
+Shared library metadata supplies dependencies on the CUDA runtime and NVIDIA
+driver packages. A real NVIDIA GPU is not required for building the package.
