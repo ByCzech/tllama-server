@@ -111,3 +111,22 @@ For all server options:
 ```sh
 /usr/lib/tllama/server/tllama-server --help
 ```
+
+## Native memory API
+
+Single-model workers expose authenticated `GET /tllama/memory`. Detect support
+on a ready worker by checking `schema_version == 1`; a 401 or 503 response does
+not mean the endpoint is unsupported. Router mode does not expose this API.
+The endpoint reads an immutable snapshot without waiting for inference or
+waking a sleeping model. Check `status`, `placement.status`, `model_state`,
+`snapshot_stage` and `snapshot_age_ms` before interpreting the inventory.
+
+The report describes deduplicated backend-buffer capacities in exact bytes
+and actual weight storage placement. It does not measure physical residency,
+driver overhead, free VRAM or the device executing every operation. iGPU
+device buffers are accounted in full as GPU buffers. Sum each buffer once,
+even when it has multiple owners; do not treat unknown sizes as zero.
+
+The complete V1 contract is installed with the core runtime as
+`/usr/share/doc/tllama-server-core/tllama-memory-v1.md` (possibly compressed).
+This snapshot requires matching rebuilt CPU and GPU plugins.

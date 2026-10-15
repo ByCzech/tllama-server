@@ -111,6 +111,9 @@ if(TLLAMA_BUILD_SERVER)
     install(FILES "${native_source}/LICENSE"
         DESTINATION "${CMAKE_INSTALL_DATADIR}/doc/tllama-server"
         RENAME LICENSE.llama.cpp COMPONENT core)
+    install(FILES "${native_source}/tools/server/tllama-memory-v1.md"
+        DESTINATION "${CMAKE_INSTALL_DATADIR}/doc/tllama-server-core"
+        COMPONENT core)
 endif()
 
 file(RELATIVE_PATH backend_to_core
