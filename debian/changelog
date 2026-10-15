@@ -1,3 +1,12 @@
+tllama-server (0.6.0~dev+b11552.2-2) stable; urgency=medium
+
+  * Support combined component profiles and an all-backends build profile.
+  * Keep compiler environments and native build trees separate while producing
+    one package set and changes file from a single debhelper sequence.
+  * Preserve per-CUDA driver dependencies and private runtime library metadata.
+
+ -- NemaChybu team APT archive <maintainers@nemachybu.cz>  Thu, 15 Oct 2026 23:20:00 +0200
+
 tllama-server (0.6.0~dev+b11552.2-1) stable; urgency=medium
 
   * Pin the native snapshot with authenticated memory API V1, deduplicated

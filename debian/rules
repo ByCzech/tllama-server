@@ -1,337 +1,42 @@
 #!/usr/bin/make -f
 
-export DEB_BUILD_MAINT_OPTIONS = hardening=+all
-
-CORE_PACKAGE = tllama-server-core
-CPU_PACKAGE = tllama-server-backend-cpu
-VULKAN_PACKAGE = tllama-server-backend-vulkan
-CUDA_PACKAGE = tllama-server-backend-cuda$(CUDA_VERSION)
-CUDA_VERSION = 12.4
-CUDA_DRIVER_MIN = 525.60.13
-CUDA_COMPILER = /usr/bin/nvcc
-CUDA_RPATH =
-CUDA_LIBRARY_PATH = /usr/lib/$(DEB_HOST_MULTIARCH)
-CUDA_TOOLKIT_OPTION =
-CUDA_SHLIBDEPS_FLAGS =
-CUDA_TARGETS = 50-virtual;60;61-virtual;70-virtual;75-virtual;80-virtual;86-real;89-real;90-virtual
-ROCM_PACKAGE = tllama-server-backend-rocm10.1
-ROCM_ROOT = /opt/rocm/core-10.1
-ROCM_TARGETS = gfx908;gfx90a;gfx942;gfx950;gfx1010;gfx1011;gfx1012;gfx1030;gfx1031;gfx1032;gfx1033;gfx1034;gfx1035;gfx1036;gfx1100;gfx1101;gfx1102;gfx1103;gfx1150;gfx1151;gfx1152;gfx1153;gfx1200;gfx1201;gfx1250
-SYCL_PACKAGE = tllama-server-backend-sycl
-ONEAPI_ROOT = /opt/intel/oneapi
-ONEAPI_COMPILER_ROOT = $(ONEAPI_ROOT)/compiler/latest
-ONEAPI_MKL_ROOT = $(ONEAPI_ROOT)/mkl/latest
-ONEAPI_DNNL_ROOT = $(ONEAPI_ROOT)/dnnl/latest
-ONEAPI_TBB_ROOT = $(ONEAPI_ROOT)/tbb/latest
-GNU_GCC_INSTALL_DIR = $(shell dirname "$$(g++ -print-file-name=crtbeginS.o)")
-ONEAPI_LIBRARY_PATH = $(ONEAPI_COMPILER_ROOT)/lib:$(ONEAPI_MKL_ROOT)/lib:$(ONEAPI_DNNL_ROOT)/lib:$(ONEAPI_TBB_ROOT)/lib
-ONEAPI_PREFIX_PATH = $(ONEAPI_COMPILER_ROOT):$(ONEAPI_MKL_ROOT):$(ONEAPI_DNNL_ROOT):$(ONEAPI_TBB_ROOT)
-ONEAPI_ENV = env ONEAPI_ROOT=$(ONEAPI_ROOT) MKLROOT=$(ONEAPI_MKL_ROOT) DNNLROOT=$(ONEAPI_DNNL_ROOT) TBBROOT=$(ONEAPI_TBB_ROOT) PATH=$(ONEAPI_COMPILER_ROOT)/bin:$$PATH LD_LIBRARY_PATH=$(ONEAPI_LIBRARY_PATH)$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH}
-RUNTIME_DIR = usr/lib/tllama/server
-CPU_ONLY = $(filter pkg.tllama-server.cpu-only,$(DEB_BUILD_PROFILES))
-VULKAN_ONLY = $(filter pkg.tllama-server.vulkan-only,$(DEB_BUILD_PROFILES))
-ROCM_ONLY = $(filter pkg.tllama-server.rocm-only,$(DEB_BUILD_PROFILES))
-CUDA_ONLY = $(filter pkg.tllama-server.cuda12.4-only pkg.tllama-server.cuda12.9-only pkg.tllama-server.cuda13.3-only,$(DEB_BUILD_PROFILES))
-CUDA129_ONLY = $(filter pkg.tllama-server.cuda12.9-only,$(DEB_BUILD_PROFILES))
-CUDA133_ONLY = $(filter pkg.tllama-server.cuda13.3-only,$(DEB_BUILD_PROFILES))
-SYCL_ONLY = $(filter pkg.tllama-server.sycl-only,$(DEB_BUILD_PROFILES))
-ifneq ($(SYCL_ONLY),)
-# dpkg's GCC LTO flags are not compatible with IntelLLVM.
-export DEB_BUILD_MAINT_OPTIONS = hardening=+all optimize=-lto
-endif
-include /usr/share/dpkg/default.mk
-BACKEND_ONLY = $(strip $(VULKAN_ONLY) $(ROCM_ONLY) $(CUDA_ONLY) $(SYCL_ONLY))
-SELECTED_PROFILES = $(strip $(CPU_ONLY) $(VULKAN_ONLY) $(ROCM_ONLY) $(CUDA_ONLY) $(SYCL_ONLY))
-
-ifneq ($(word 2,$(SELECTED_PROFILES)),)
-$(error select only one tllama-server build profile)
+COMPONENT_ORDER := cpu vulkan rocm cuda12.4 cuda12.9 cuda13.3 sycl
+ONLY_PROFILES := $(addprefix pkg.tllama-server.,$(addsuffix -only,$(COMPONENT_ORDER)))
+TLLAMA_PROFILES := $(filter pkg.tllama-server.%,$(DEB_BUILD_PROFILES))
+UNKNOWN_PROFILES := $(filter-out $(ONLY_PROFILES) pkg.tllama-server.all,$(TLLAMA_PROFILES))
+ifneq ($(UNKNOWN_PROFILES),)
+$(error unknown tllama-server build profile: $(UNKNOWN_PROFILES))
 endif
 
-ifneq ($(CUDA129_ONLY),)
-CUDA_VERSION = 12.9
-CUDA_ROOT = /usr/local/cuda-12.9
-CUDA_SHADOW = $(CURDIR)/build-cuda12.9-sdk
-CUDA_COMPILER = $(CUDA_SHADOW)/bin/nvcc
-CUDA_TARGETS := $(CUDA_TARGETS);120a-real;121a-real
-CUDA_RPATH = $(CUDA_ROOT)/targets/x86_64-linux/lib
-CUDA_LIBRARY_PATH = $(CUDA_RPATH)
-CUDA_TOOLKIT_OPTION = -DCUDAToolkit_ROOT=$(CUDA_SHADOW)
-CUDA_SHLIBDEPS_FLAGS = --ignore-missing-info
-endif
-ifneq ($(CUDA133_ONLY),)
-CUDA_VERSION = 13.3
-CUDA_DRIVER_MIN = 580
-CUDA_ROOT = /usr/local/cuda-13.3
-CUDA_COMPILER = $(CUDA_ROOT)/bin/nvcc
-CUDA_TARGETS = 75-virtual;80-virtual;86-real;89-real;90-virtual;120a-real;121a-real
-CUDA_RPATH = $(CUDA_ROOT)/targets/x86_64-linux/lib
-CUDA_LIBRARY_PATH = $(CUDA_RPATH)
-CUDA_TOOLKIT_OPTION = -DCUDAToolkit_ROOT=$(CUDA_ROOT)
-CUDA_SHLIBDEPS_FLAGS = --ignore-missing-info
-endif
-CUDA_VERSION_PATTERN = $(subst .,\.,$(CUDA_VERSION))
-
-ifeq ($(BACKEND_ONLY),)
-BUILD_DIR = build-debian
-BUILD_SERVER = ON
-BUILD_CPU = ON
+ifneq ($(filter pkg.tllama-server.all,$(TLLAMA_PROFILES)),)
+COMPONENTS := $(COMPONENT_ORDER)
+else ifneq ($(TLLAMA_PROFILES),)
+REQUESTED_COMPONENTS := $(patsubst pkg.tllama-server.%-only,%,$(TLLAMA_PROFILES))
+COMPONENTS := $(filter $(REQUESTED_COMPONENTS),$(COMPONENT_ORDER))
 else
-BUILD_SERVER = OFF
-BUILD_CPU = OFF
-ifneq ($(ROCM_ONLY),)
-BUILD_DIR = build-debian-rocm10.1
-else
-ifneq ($(CUDA_ONLY),)
-BUILD_DIR = build-debian-cuda$(CUDA_VERSION)
-else ifneq ($(SYCL_ONLY),)
-BUILD_DIR = build-debian-sycl
-else
-BUILD_DIR = build-debian-vulkan
+COMPONENTS := cpu vulkan
 endif
-endif
-endif
-
-ifeq ($(strip $(CPU_ONLY) $(ROCM_ONLY) $(CUDA_ONLY) $(SYCL_ONLY)),)
-BUILD_VULKAN = ON
-else
-BUILD_VULKAN = OFF
-endif
-
-# Keep direct override invocations in the same tree as the dh sequence.
-AUTO_BUILD_OPTIONS = --buildsystem=cmake+ninja --builddirectory=$(BUILD_DIR)
+OTHER_PROFILES := $(filter-out pkg.tllama-server.%,$(DEB_BUILD_PROFILES))
 
 %:
-	dh $@ $(AUTO_BUILD_OPTIONS)
+	dh $@ --buildsystem=cmake+ninja --builddirectory=build-debian
 
-override_dh_auto_configure:
-ifneq ($(ROCM_ONLY),)
-	test -x $(ROCM_ROOT)/bin/hipcc
-	test -x $(ROCM_ROOT)/lib/llvm/bin/clang++
-	test -f $(ROCM_ROOT)/include/hip/hip_fp16.h
-	test -d $(ROCM_ROOT)/amdgcn/bitcode
-	grep -Eq '^10\.1([.]|$$)' $(ROCM_ROOT)/.info/version
-	test ! -e /usr/include/hip/hip_fp16.h || { \
-		echo "legacy HIP headers found in /usr/include/hip; remove libamdhip64-dev before building ROCm 10.1" >&2; \
-		exit 1; \
-	}
-	env HIP_PLATFORM=amd HIP_PATH=$(ROCM_ROOT) ROCM_PATH=$(ROCM_ROOT) \
-		HIP_CLANG_PATH=$(ROCM_ROOT)/lib/llvm/bin \
-		HIP_INCLUDE_PATH=$(ROCM_ROOT)/include \
-		HIP_DEVICE_LIB_PATH=$(ROCM_ROOT)/amdgcn/bitcode \
-		DEVICE_LIB_PATH=$(ROCM_ROOT)/amdgcn/bitcode \
-		PATH=$(ROCM_ROOT)/bin:$(ROCM_ROOT)/lib/llvm/bin:$$PATH \
-		dh_auto_configure $(AUTO_BUILD_OPTIONS) -- \
-		-DCMAKE_BUILD_TYPE=Release \
-		-DTLLAMA_BUILD_SERVER=OFF \
-		-DTLLAMA_INSTALL_LIBDIR=lib/tllama/server \
-		-DTLLAMA_BACKEND_INSTALL_DIR=lib/tllama/server/backends/rocm10.1 \
-		-DTLLAMA_BACKEND_RPATH=$(ROCM_ROOT)/lib \
-		-DCMAKE_HIP_COMPILER=$(ROCM_ROOT)/lib/llvm/bin/clang++ \
-		-DCMAKE_HIP_COMPILER_ROCM_ROOT=$(ROCM_ROOT) \
-		-DCMAKE_PREFIX_PATH=$(ROCM_ROOT)/lib/cmake \
-		-Dhip_DIR=$(ROCM_ROOT)/lib/cmake/hip \
-		-Dhipblas_DIR=$(ROCM_ROOT)/lib/cmake/hipblas \
-		-Drocblas_DIR=$(ROCM_ROOT)/lib/cmake/rocblas \
-		-DCMAKE_HIP_ARCHITECTURES="$(ROCM_TARGETS)" \
-		-DGGML_CPU=OFF \
-		-DGGML_BLAS=OFF \
-		-DGGML_HIP=ON \
-		-DGGML_HIP_GRAPHS=ON \
-		-DGGML_HIP_RCCL=OFF \
-		-DGGML_HIP_NO_VMM=ON \
-		-DGGML_CUDA=OFF \
-		-DGGML_VULKAN=OFF \
-		-DGGML_SYCL=OFF
-else ifneq ($(CUDA_ONLY),)
-ifneq ($(CUDA129_ONLY),)
-	# Keep NVIDIA-owned headers untouched; patch only this build-local shadow.
-	$(CUDA_ROOT)/bin/nvcc --version | grep -Eq 'release 12\.9([, ])'
-	rm -rf $(CUDA_SHADOW)
-	cp -as $(CUDA_ROOT)/. $(CUDA_SHADOW)/
-	rm -f $(CUDA_SHADOW)/bin/nvcc
-	cp -a $(CUDA_ROOT)/bin/nvcc $(CUDA_SHADOW)/bin/nvcc
-	rm -f $(CUDA_SHADOW)/targets/x86_64-linux/include/crt/math_functions.h
-	cp -a $(CUDA_ROOT)/targets/x86_64-linux/include/crt/math_functions.h \
-		$(CUDA_SHADOW)/targets/x86_64-linux/include/crt/math_functions.h
-	python3 debian/cuda12.9-glibc2.41.py \
-		$(CUDA_SHADOW)/targets/x86_64-linux/include/crt/math_functions.h
-endif
-	$(CUDA_COMPILER) --version | grep -Eq 'release $(CUDA_VERSION_PATTERN)([, ])'
-	# Use explicit GPU targets, independently of the build host hardware.
-	dh_auto_configure $(AUTO_BUILD_OPTIONS) -- \
-		-DCMAKE_BUILD_TYPE=Release \
-		-DTLLAMA_BUILD_SERVER=OFF \
-		-DTLLAMA_INSTALL_LIBDIR=lib/tllama/server \
-		-DTLLAMA_BACKEND_INSTALL_DIR=lib/tllama/server/backends/cuda$(CUDA_VERSION) \
-		-DTLLAMA_BACKEND_RPATH=$(CUDA_RPATH) \
-		$(CUDA_TOOLKIT_OPTION) \
-		-DCMAKE_CUDA_COMPILER=$(CUDA_COMPILER) \
-		-DCMAKE_CUDA_ARCHITECTURES="$(CUDA_TARGETS)" \
-		-DGGML_CPU=OFF \
-		-DGGML_BLAS=OFF \
-		-DGGML_CUDA=ON \
-		-DGGML_CUDA_GRAPHS=ON \
-		-DGGML_CUDA_NCCL=OFF \
-		-DGGML_HIP=OFF \
-		-DGGML_VULKAN=OFF \
-		-DGGML_SYCL=OFF
-else ifneq ($(SYCL_ONLY),)
-	test -x $(ONEAPI_COMPILER_ROOT)/bin/icx
-	test -x $(ONEAPI_COMPILER_ROOT)/bin/icpx
-	test -f $(GNU_GCC_INSTALL_DIR)/crtbeginS.o
-	test -f $(GNU_GCC_INSTALL_DIR)/libstdc++.so
-	test -d $(ONEAPI_MKL_ROOT)
-	test -d $(ONEAPI_DNNL_ROOT)
-	test -f $(ONEAPI_TBB_ROOT)/lib/cmake/tbb/TBBConfig.cmake
-	# Pin native GCC to avoid IntelLLVM selecting a gcc-cross installation.
-	$(ONEAPI_ENV) dh_auto_configure $(AUTO_BUILD_OPTIONS) -- \
-		-DCMAKE_BUILD_TYPE=Release \
-		-DCMAKE_C_COMPILER=$(ONEAPI_COMPILER_ROOT)/bin/icx \
-		-DCMAKE_CXX_COMPILER=$(ONEAPI_COMPILER_ROOT)/bin/icpx \
-		"-DCMAKE_C_FLAGS=$(CFLAGS) $(CPPFLAGS) --gcc-install-dir=$(GNU_GCC_INSTALL_DIR)" \
-		"-DCMAKE_CXX_FLAGS=$(CXXFLAGS) $(CPPFLAGS) --gcc-install-dir=$(GNU_GCC_INSTALL_DIR)" \
-		"-DCMAKE_PREFIX_PATH=$(subst :,;,$(ONEAPI_PREFIX_PATH))" \
-		-DTBB_DIR=$(ONEAPI_TBB_ROOT)/lib/cmake/tbb \
-		-DTLLAMA_BUILD_SERVER=OFF \
-		-DTLLAMA_INSTALL_LIBDIR=lib/tllama/server \
-		-DTLLAMA_BACKEND_INSTALL_DIR=lib/tllama/server/backends/sycl \
-		"-DTLLAMA_BACKEND_RPATH=$(subst :,;,$(ONEAPI_LIBRARY_PATH))" \
-		-DGGML_CPU=OFF \
-		-DGGML_BLAS=OFF \
-		-DGGML_CUDA=OFF \
-		-DGGML_HIP=OFF \
-		-DGGML_VULKAN=OFF \
-		-DGGML_SYCL=ON \
-		-DGGML_SYCL_TARGET=INTEL \
-		-DGGML_SYCL_F16=ON \
-		-DGGML_SYCL_GRAPH=ON \
-		-DGGML_SYCL_HOST_MEM_FALLBACK=ON \
-		-DGGML_SYCL_SUPPORT_LEVEL_ZERO_API=ON \
-		-DGGML_SYCL_DNN=ON \
-		-DGGML_SYCL_DEVICE_ARCH=
-else
-	dh_auto_configure $(AUTO_BUILD_OPTIONS) -- \
-		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
-		-DTLLAMA_BUILD_SERVER=$(BUILD_SERVER) \
-		-DTLLAMA_INSTALL_LIBDIR=lib/tllama/server \
-		-DTLLAMA_BACKEND_INSTALL_DIR=lib/tllama/server \
-		-DTLLAMA_BACKEND_RPATH= \
-		-DGGML_CPU=$(BUILD_CPU) \
-		-DGGML_CPU_ALL_VARIANTS=$(BUILD_CPU) \
-		-DGGML_BLAS=$(BUILD_CPU) \
-		-DGGML_BLAS_VENDOR=OpenBLAS \
-		-DGGML_CUDA=OFF \
-		-DGGML_HIP=OFF \
-		-DGGML_VULKAN=$(BUILD_VULKAN) \
-		-DGGML_SYCL=OFF
-endif
-
-override_dh_auto_build:
-ifneq ($(SYCL_ONLY),)
-	$(ONEAPI_ENV) dh_auto_build $(AUTO_BUILD_OPTIONS)
-else
-	dh_auto_build $(AUTO_BUILD_OPTIONS)
-endif
+# One debhelper sequence owns the package set, .changes and signing. Dispatch
+# only the native phases, not recursive binary-package builds or dh sequences.
+# Components run sequentially; each compiler can use the requested parallelism.
+override_dh_auto_configure override_dh_auto_build override_dh_auto_install override_dh_shlibdeps override_dh_auto_clean:
+	+set -e; for component in $(COMPONENTS); do \
+		$(MAKE) --no-print-directory -f debian/build-component.mk $@ \
+			DEB_BUILD_PROFILES="$(OTHER_PROFILES) pkg.tllama-server.$$component-only"; \
+	done
 
 override_dh_auto_test:
-	# The CPU runtime check below uses the installed component layout.
+	# check-runtime.py validates the staged core/CPU installation at install time.
 	:
 
-override_dh_auto_install:
-ifeq ($(BACKEND_ONLY),)
-	DESTDIR=$(CURDIR)/debian/$(CORE_PACKAGE) \
-		cmake --install $(BUILD_DIR) --component core
-	DESTDIR=$(CURDIR)/debian/$(CPU_PACKAGE) \
-		cmake --install $(BUILD_DIR) --component backend-cpu
-	DESTDIR=$(CURDIR)/debian/$(CPU_PACKAGE) \
-		cmake --install $(BUILD_DIR) --component backend-blas
-	python3 debian/check-runtime.py debian/$(CORE_PACKAGE) debian/$(CPU_PACKAGE)
-endif
-ifeq ($(strip $(CPU_ONLY) $(ROCM_ONLY) $(CUDA_ONLY) $(SYCL_ONLY)),)
-	DESTDIR=$(CURDIR)/debian/$(VULKAN_PACKAGE) \
-		cmake --install $(BUILD_DIR) --component backend-vulkan
-endif
-ifneq ($(ROCM_ONLY),)
-	DESTDIR=$(CURDIR)/debian/$(ROCM_PACKAGE) \
-		cmake --install $(BUILD_DIR) --component backend-hip
-endif
-
-ifneq ($(CUDA_ONLY),)
-	DESTDIR=$(CURDIR)/debian/$(CUDA_PACKAGE) \
-		cmake --install $(BUILD_DIR) --component backend-cuda
-endif
-
-ifneq ($(SYCL_ONLY),)
-	DESTDIR=$(CURDIR)/debian/$(SYCL_PACKAGE) \
-		cmake --install $(BUILD_DIR) --component backend-sycl
-endif
+override_dh_makeshlibs:
+	# Private SONAME metadata is created per component during dh_shlibdeps.
+	:
 
 execute_after_dh_installdocs:
 	dh_lintian
-
-override_dh_makeshlibs:
-	# These SONAMEs are private to this distribution, not global library APIs.
-	# Provide build-local metadata without publishing global shlibs or adding
-	# ldconfig maintainer scripts to the packages.
-	{ \
-		for library in ggml-base ggml llama llama-common mtmd; do \
-			printf 'lib%s 0 $(CORE_PACKAGE) (= $(DEB_VERSION))\n' "$$library"; \
-		done; \
-		if [ -n "$(CUDA_ONLY)" ]; then \
-			printf 'libcuda 1 libcuda1 (>= $(CUDA_DRIVER_MIN))\n'; \
-		fi; \
-	} > debian/shlibs.local
-
-override_dh_shlibdeps:
-ifeq ($(BACKEND_ONLY),)
-	dh_shlibdeps -p$(CORE_PACKAGE) \
-		-l$(CURDIR)/debian/$(CORE_PACKAGE)/$(RUNTIME_DIR) \
-		-- -x$(CORE_PACKAGE)
-	dh_shlibdeps -p$(CPU_PACKAGE) \
-		-l$(CURDIR)/debian/$(CORE_PACKAGE)/$(RUNTIME_DIR) \
-		-- -x$(CORE_PACKAGE)
-endif
-ifeq ($(strip $(CPU_ONLY) $(ROCM_ONLY) $(CUDA_ONLY) $(SYCL_ONLY)),)
-	# In a backend-only build, resolve ggml-base from this build tree. Local
-	# shlibs metadata maps it to the exact core package version; the common
-	# library itself is not included in the Vulkan package.
-	dh_shlibdeps -p$(VULKAN_PACKAGE) \
-		-l$(CURDIR)/$(BUILD_DIR)/bin \
-		-- -x$(CORE_PACKAGE)
-endif
-ifneq ($(ROCM_ONLY),)
-	# AMD's versioned packages supply the HIP/BLAS runtime dependencies
-	# explicitly; shlibdeps still collects the standard Debian libraries.
-	dh_shlibdeps -p$(ROCM_PACKAGE) \
-		-l$(CURDIR)/$(BUILD_DIR)/bin:$(ROCM_ROOT)/lib \
-		-- -x$(CORE_PACKAGE) --ignore-missing-info
-endif
-
-ifneq ($(CUDA_ONLY),)
-	# NVIDIA SDK packages have explicit runtime dependencies in control.
-	# Local metadata maps libcuda toolkit stubs to the real driver package.
-	dh_shlibdeps -p$(CUDA_PACKAGE) \
-		-l$(CURDIR)/$(BUILD_DIR)/bin:$(CUDA_LIBRARY_PATH) \
-		-- -x$(CORE_PACKAGE) $(CUDA_SHLIBDEPS_FLAGS)
-endif
-
-ifneq ($(SYCL_ONLY),)
-	# Keep oneAPI runtime dependencies explicit and inspect the private module
-	# against SDK paths without requiring a globally sourced setvars.sh.
-	dh_shlibdeps -p$(SYCL_PACKAGE) \
-		-l$(CURDIR)/$(BUILD_DIR)/bin:$(ONEAPI_LIBRARY_PATH) \
-		-- -x$(CORE_PACKAGE) --ignore-missing-info
-endif
-
-override_dh_auto_clean:
-	# Preserve the other profile's CMake tree, but remove package staging
-	# output from every profile before dpkg-source collects debian/.
-	rm -rf $(BUILD_DIR) debian/tllama-server \
-		debian/$(CORE_PACKAGE) debian/$(CPU_PACKAGE) debian/$(VULKAN_PACKAGE) \
-		debian/$(ROCM_PACKAGE) debian/tllama-server-backend-cuda12.4 \
-		debian/tllama-server-backend-cuda12.9 debian/tllama-server-backend-cuda13.3 \
-		debian/$(SYCL_PACKAGE)
-	rm -f debian/shlibs.local debian/*.substvars debian/*.debhelper
-ifneq ($(CUDA129_ONLY),)
-	rm -rf $(CUDA_SHADOW)
-endif

@@ -8,28 +8,28 @@ Build-Depends:
  ninja-build,
  pkgconf,
  python3,
- libssl-dev <!pkg.tllama-server.vulkan-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only !pkg.tllama-server.cuda12.9-only !pkg.tllama-server.cuda13.3-only !pkg.tllama-server.sycl-only>,
- libopenblas-dev <!pkg.tllama-server.vulkan-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only !pkg.tllama-server.cuda12.9-only !pkg.tllama-server.cuda13.3-only !pkg.tllama-server.sycl-only>,
- libvulkan-dev <!pkg.tllama-server.cpu-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only !pkg.tllama-server.cuda12.9-only !pkg.tllama-server.cuda13.3-only !pkg.tllama-server.sycl-only>,
- glslc <!pkg.tllama-server.cpu-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only !pkg.tllama-server.cuda12.9-only !pkg.tllama-server.cuda13.3-only !pkg.tllama-server.sycl-only>,
- spirv-headers <!pkg.tllama-server.cpu-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only !pkg.tllama-server.cuda12.9-only !pkg.tllama-server.cuda13.3-only !pkg.tllama-server.sycl-only>,
- nvidia-cuda-toolkit (>= 12.4) <pkg.tllama-server.cuda12.4-only>,
- cuda-toolkit-12-9 <pkg.tllama-server.cuda12.9-only>,
- cuda-toolkit-13-3 <pkg.tllama-server.cuda13.3-only>,
- amdrocm-core-sdk10.1 (>= 10.1.0) <pkg.tllama-server.rocm-only>,
- intel-oneapi-compiler-dpcpp-cpp <pkg.tllama-server.sycl-only>,
- intel-oneapi-mkl-sycl-devel <pkg.tllama-server.sycl-only>,
- intel-oneapi-dnnl-devel <pkg.tllama-server.sycl-only>,
- intel-oneapi-tbb-devel <pkg.tllama-server.sycl-only>,
- libze-dev <pkg.tllama-server.sycl-only>
+ libssl-dev <!pkg.tllama-server.vulkan-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only !pkg.tllama-server.cuda12.9-only !pkg.tllama-server.cuda13.3-only !pkg.tllama-server.sycl-only> <pkg.tllama-server.cpu-only> <pkg.tllama-server.all>,
+ libopenblas-dev <!pkg.tllama-server.vulkan-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only !pkg.tllama-server.cuda12.9-only !pkg.tllama-server.cuda13.3-only !pkg.tllama-server.sycl-only> <pkg.tllama-server.cpu-only> <pkg.tllama-server.all>,
+ libvulkan-dev <!pkg.tllama-server.cpu-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only !pkg.tllama-server.cuda12.9-only !pkg.tllama-server.cuda13.3-only !pkg.tllama-server.sycl-only> <pkg.tllama-server.vulkan-only> <pkg.tllama-server.all>,
+ glslc <!pkg.tllama-server.cpu-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only !pkg.tllama-server.cuda12.9-only !pkg.tllama-server.cuda13.3-only !pkg.tllama-server.sycl-only> <pkg.tllama-server.vulkan-only> <pkg.tllama-server.all>,
+ spirv-headers <!pkg.tllama-server.cpu-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only !pkg.tllama-server.cuda12.9-only !pkg.tllama-server.cuda13.3-only !pkg.tllama-server.sycl-only> <pkg.tllama-server.vulkan-only> <pkg.tllama-server.all>,
+ nvidia-cuda-toolkit (>= 12.4) <pkg.tllama-server.cuda12.4-only> <pkg.tllama-server.all>,
+ cuda-toolkit-12-9 <pkg.tllama-server.cuda12.9-only> <pkg.tllama-server.all>,
+ cuda-toolkit-13-3 <pkg.tllama-server.cuda13.3-only> <pkg.tllama-server.all>,
+ amdrocm-core-sdk10.1 (>= 10.1.0) <pkg.tllama-server.rocm-only> <pkg.tllama-server.all>,
+ intel-oneapi-compiler-dpcpp-cpp <pkg.tllama-server.sycl-only> <pkg.tllama-server.all>,
+ intel-oneapi-mkl-sycl-devel <pkg.tllama-server.sycl-only> <pkg.tllama-server.all>,
+ intel-oneapi-dnnl-devel <pkg.tllama-server.sycl-only> <pkg.tllama-server.all>,
+ intel-oneapi-tbb-devel <pkg.tllama-server.sycl-only> <pkg.tllama-server.all>,
+ libze-dev <pkg.tllama-server.sycl-only> <pkg.tllama-server.all>
 Build-Conflicts:
- libamdhip64-dev <pkg.tllama-server.rocm-only>
+ libamdhip64-dev <pkg.tllama-server.rocm-only> <pkg.tllama-server.all>
 Standards-Version: 4.7.2
 Rules-Requires-Root: no
 
 Package: tllama-server
 Architecture: all
-Build-Profiles: <!pkg.tllama-server.vulkan-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only !pkg.tllama-server.cuda12.9-only !pkg.tllama-server.cuda13.3-only !pkg.tllama-server.sycl-only>
+Build-Profiles: <!pkg.tllama-server.vulkan-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only !pkg.tllama-server.cuda12.9-only !pkg.tllama-server.cuda13.3-only !pkg.tllama-server.sycl-only> <pkg.tllama-server.cpu-only> <pkg.tllama-server.all>
 Depends:
  tllama-server-core (= ${binary:Version}),
  tllama-server-backend-cpu (= ${binary:Version}),
@@ -40,7 +40,7 @@ Description: TLlama private inference server with CPU support
 
 Package: tllama-server-core
 Architecture: amd64
-Build-Profiles: <!pkg.tllama-server.vulkan-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only !pkg.tllama-server.cuda12.9-only !pkg.tllama-server.cuda13.3-only !pkg.tllama-server.sycl-only>
+Build-Profiles: <!pkg.tllama-server.vulkan-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only !pkg.tllama-server.cuda12.9-only !pkg.tllama-server.cuda13.3-only !pkg.tllama-server.sycl-only> <pkg.tllama-server.cpu-only> <pkg.tllama-server.all>
 Depends:
  ${shlibs:Depends},
  ${misc:Depends}
@@ -51,7 +51,7 @@ Description: TLlama private inference server runtime
 
 Package: tllama-server-backend-cpu
 Architecture: amd64
-Build-Profiles: <!pkg.tllama-server.vulkan-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only !pkg.tllama-server.cuda12.9-only !pkg.tllama-server.cuda13.3-only !pkg.tllama-server.sycl-only>
+Build-Profiles: <!pkg.tllama-server.vulkan-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only !pkg.tllama-server.cuda12.9-only !pkg.tllama-server.cuda13.3-only !pkg.tllama-server.sycl-only> <pkg.tllama-server.cpu-only> <pkg.tllama-server.all>
 Depends:
  tllama-server-core (= ${binary:Version}),
  ${shlibs:Depends},
@@ -62,7 +62,7 @@ Description: TLlama dynamically selected CPU and OpenBLAS backends
 
 Package: tllama-server-backend-vulkan
 Architecture: amd64
-Build-Profiles: <!pkg.tllama-server.cpu-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only !pkg.tllama-server.cuda12.9-only !pkg.tllama-server.cuda13.3-only !pkg.tllama-server.sycl-only>
+Build-Profiles: <!pkg.tllama-server.cpu-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only !pkg.tllama-server.cuda12.9-only !pkg.tllama-server.cuda13.3-only !pkg.tllama-server.sycl-only> <pkg.tllama-server.vulkan-only> <pkg.tllama-server.all>
 Depends:
  tllama-server-core (= ${binary:Version}),
  tllama-server-backend-cpu (= ${binary:Version}),
@@ -74,7 +74,7 @@ Description: TLlama dynamically loadable Vulkan backend
 
 Package: tllama-server-backend-rocm10.1
 Architecture: amd64
-Build-Profiles: <pkg.tllama-server.rocm-only>
+Build-Profiles: <pkg.tllama-server.rocm-only> <pkg.tllama-server.all>
 Provides: tllama-server-backend-rocm (= ${binary:Version})
 Depends:
  tllama-server-core (= ${binary:Version}),
@@ -91,7 +91,7 @@ Description: TLlama dynamically loadable ROCm 10.1 HIP backend
 
 Package: tllama-server-backend-cuda12.4
 Architecture: amd64
-Build-Profiles: <pkg.tllama-server.cuda12.4-only>
+Build-Profiles: <pkg.tllama-server.cuda12.4-only> <pkg.tllama-server.all>
 Provides: tllama-server-backend-cuda (= ${binary:Version})
 Depends:
  tllama-server-core (= ${binary:Version}),
@@ -106,7 +106,7 @@ Description: TLlama dynamically loadable CUDA 12.4 backend
 
 Package: tllama-server-backend-cuda12.9
 Architecture: amd64
-Build-Profiles: <pkg.tllama-server.cuda12.9-only>
+Build-Profiles: <pkg.tllama-server.cuda12.9-only> <pkg.tllama-server.all>
 Provides: tllama-server-backend-cuda (= ${binary:Version})
 Depends:
  tllama-server-core (= ${binary:Version}),
@@ -123,7 +123,7 @@ Description: TLlama dynamically loadable CUDA 12.9 backend
 
 Package: tllama-server-backend-cuda13.3
 Architecture: amd64
-Build-Profiles: <pkg.tllama-server.cuda13.3-only>
+Build-Profiles: <pkg.tllama-server.cuda13.3-only> <pkg.tllama-server.all>
 Provides: tllama-server-backend-cuda (= ${binary:Version})
 Depends:
  tllama-server-core (= ${binary:Version}),
@@ -140,7 +140,7 @@ Description: TLlama dynamically loadable CUDA 13.3 backend
 
 Package: tllama-server-backend-sycl
 Architecture: amd64
-Build-Profiles: <pkg.tllama-server.sycl-only>
+Build-Profiles: <pkg.tllama-server.sycl-only> <pkg.tllama-server.all>
 Depends:
  tllama-server-core (= ${binary:Version}),
  tllama-server-backend-cpu (= ${binary:Version}),

@@ -67,19 +67,51 @@ package set, build dependencies and native CMake targets:
   `libamdhip64-dev` headers. CPU/Vulkan/OpenSSL/OpenBLAS development packages
   are not required by this profile.
 
-The profiles cannot be combined. Once the matching core and CPU packages are
-built, build the Vulkan package independently:
+Profiles can be combined to build exactly the selected components in one
+`debuild` invocation. The CPU profile also selects the core and metapackage.
+For example, build CPU/core, Vulkan and CUDA 12.9 together:
+
+```sh
+debuild -Ppkg.tllama-server.cpu-only,pkg.tllama-server.vulkan-only,pkg.tllama-server.cuda12.9-only -j"$(nproc)"
+```
+
+To build every package, including all three CUDA versions, ROCm and SYCL:
+
+```sh
+dpkg-checkbuilddeps -Ppkg.tllama-server.all
+debuild -Ppkg.tllama-server.all -j"$(nproc)"
+```
+
+The `all` profile requires every selected SDK and their build dependencies. A
+missing SDK or failed component stops the build; backends are never silently
+skipped. Native components run sequentially in separate CMake trees, each using
+the requested build parallelism. Compiler environments, SYCL flags and CUDA
+driver dependencies remain component-specific. A single debhelper sequence
+produces the complete package set, one `.changes` file and the normal signing
+step. Without profiles the default remains CPU/core plus Vulkan, now also in
+separate CMake trees.
+
+Once the matching core and CPU packages are built, the Vulkan package can still
+be built independently:
 
 ```sh
 dpkg-checkbuilddeps -Ppkg.tllama-server.vulkan-only
 debuild -Ppkg.tllama-server.vulkan-only -j"$(nproc)"
 ```
 
-Each profile's clean step removes its own CMake tree. CPU-only builds do not
-remove the Vulkan tree, and Vulkan-only builds do not remove the CPU tree.
+The clean step removes the CMake trees of the selected components. CPU-only
+builds do not remove the Vulkan tree, and Vulkan-only builds do not remove the
+CPU tree.
 The Vulkan build uses a temporary ggml-base from its own build tree for linking
 and dependency inspection; only the Vulkan module goes into the plugin package.
 The matching core package supplies ggml-base at runtime.
+
+The profile/package/dependency matrix and native dispatch can be checked without
+SDKs or GPUs (requires Python, make and dpkg-dev):
+
+```sh
+python3 debian/tests/check-build-profiles.py
+```
 
 ## Private installation
 
@@ -128,8 +160,8 @@ debuild -Ppkg.tllama-server.cuda12.4-only -j"$(nproc)"
 ```
 
 This profile builds only the CUDA package in `build-debian-cuda12.4`, using
-`nvidia-cuda-toolkit` and `/usr/bin/nvcc` from Debian 13. It cannot be combined
-with another tllama-server profile. CUDA graphs are enabled and NCCL is disabled.
+`nvidia-cuda-toolkit` and `/usr/bin/nvcc` from Debian 13. CUDA graphs are enabled
+and NCCL is disabled.
 The architecture list is independent of GPUs present on the build machine and
 includes a native/virtual sm_60 image for Pascal P100 FP16 support.
 
