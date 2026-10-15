@@ -58,7 +58,7 @@ def run_make(root, arguments, profiles=(), check=True):
 
 def check_profile_matrix():
     components = list(PACKAGES)
-    cases = [([], components[:2]), (["nocheck"], components[:2])]
+    cases = [([], components), (["nocheck"], components)]
     for size in range(1, len(components) + 1):
         for selected in itertools.combinations(components, size):
             cases.append(([PREFIX + item + "-only" for item in selected], list(selected)))
@@ -124,13 +124,14 @@ def check_dispatch():
             "\t@printf 'CALL|%s|%s\\n' '$@' '$(DEB_BUILD_PROFILES)'\n"
             "\t@test '$(filter $(FAIL_PROFILE),$(DEB_BUILD_PROFILES))' = ''\n"
         )
-        profiles = [PREFIX + "all", "nocheck"]
-        for goal in GOALS:
-            result = run_make(root, ["-f", "debian/rules", goal], profiles)
-            expected = [f"CALL|{goal}|nocheck {PREFIX}{item}-only" for item in PACKAGES]
-            assert result.stdout.splitlines() == expected, result
+        for profiles in ([], ["nocheck"], [PREFIX + "all", "nocheck"]):
+            other = "nocheck " if "nocheck" in profiles else ""
+            for goal in GOALS:
+                result = run_make(root, ["-f", "debian/rules", goal], profiles)
+                expected = [f"CALL|{goal}|{other}{PREFIX}{item}-only" for item in PACKAGES]
+                assert result.stdout.splitlines() == expected, result
         failed = run_make(root, ["-f", "debian/rules", GOALS[1],
-                                "FAIL_PROFILE=" + PREFIX + "rocm-only"], profiles, check=False)
+                                "FAIL_PROFILE=" + PREFIX + "rocm-only"], check=False)
         assert failed.returncode != 0
         assert len(failed.stdout.splitlines()) == 3, failed
 

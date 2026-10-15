@@ -1,3 +1,12 @@
+tllama-server (0.6.0~dev+b11552.2-3) stable; urgency=medium
+
+  * Build every backend by default with plain debuild, including the complete
+    SDK dependency set and ROCm header conflict check.
+  * Keep individual and combined profiles for restricted package builds, and
+    retain the explicit all profile as an alias for the default.
+
+ -- NemaChybu team APT archive <maintainers@nemachybu.cz>  Thu, 15 Oct 2026 23:47:00 +0200
+
 tllama-server (0.6.0~dev+b11552.2-2) stable; urgency=medium
 
   * Support combined component profiles and an all-backends build profile.

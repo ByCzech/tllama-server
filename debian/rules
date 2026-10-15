@@ -14,7 +14,7 @@ else ifneq ($(TLLAMA_PROFILES),)
 REQUESTED_COMPONENTS := $(patsubst pkg.tllama-server.%-only,%,$(TLLAMA_PROFILES))
 COMPONENTS := $(filter $(REQUESTED_COMPONENTS),$(COMPONENT_ORDER))
 else
-COMPONENTS := cpu vulkan
+COMPONENTS := $(COMPONENT_ORDER)
 endif
 OTHER_PROFILES := $(filter-out pkg.tllama-server.%,$(DEB_BUILD_PROFILES))
 

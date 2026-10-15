@@ -26,9 +26,9 @@ submodule and no tracked changes, run from the repository root:
 
 ```sh
 python3 tools/make-orig.py
-dpkg-checkbuilddeps -Ppkg.tllama-server.cpu-only
+dpkg-checkbuilddeps
 dpkg-source -b .
-debuild -Ppkg.tllama-server.cpu-only -j"$(nproc)"
+debuild -j"$(nproc)"
 ```
 
 The exporter reads Git commits, not working files, and excludes `debian/` from
@@ -51,9 +51,10 @@ metadata as appropriate before exporting a new source version.
 
 ## Build profiles
 
-Without a profile, the build produces the four CPU/Vulkan packages. ROCm, CUDA and
-SYCL are built explicitly with their own profiles. Profiles select the
-package set, build dependencies and native CMake targets:
+Without a profile, the build produces every package: core, CPU/OpenBLAS, Vulkan,
+ROCm, all three CUDA versions and SYCL. Plain `debuild` or `debuild -jN` is
+sufficient. Profiles restrict the package set, build dependencies and native
+CMake targets:
 
 - `pkg.tllama-server.cpu-only`: metapackage, core and CPU/OpenBLAS in
   `build-debian`. Vulkan development dependencies are not required.
@@ -75,21 +76,23 @@ For example, build CPU/core, Vulkan and CUDA 12.9 together:
 debuild -Ppkg.tllama-server.cpu-only,pkg.tllama-server.vulkan-only,pkg.tllama-server.cuda12.9-only -j"$(nproc)"
 ```
 
-To build every package, including all three CUDA versions, ROCm and SYCL:
+The default build requires all SDKs and their build dependencies. The explicit
+`pkg.tllama-server.all` profile remains an alias for that default:
 
 ```sh
-dpkg-checkbuilddeps -Ppkg.tllama-server.all
-debuild -Ppkg.tllama-server.all -j"$(nproc)"
+dpkg-checkbuilddeps
+debuild -j"$(nproc)"
 ```
 
-The `all` profile requires every selected SDK and their build dependencies. A
-missing SDK or failed component stops the build; backends are never silently
-skipped. Native components run sequentially in separate CMake trees, each using
+Use individual profiles or their combinations to build a subset without
+requiring the other SDKs. A missing SDK or failed component stops the build;
+backends are never silently skipped. Native components run sequentially in
+separate CMake trees, each using
 the requested build parallelism. Compiler environments, SYCL flags and CUDA
 driver dependencies remain component-specific. A single debhelper sequence
 produces the complete package set, one `.changes` file and the normal signing
-step. Without profiles the default remains CPU/core plus Vulkan, now also in
-separate CMake trees.
+step. The default and explicit `all` profile select the same package set and
+build dependencies; unrelated profiles such as `nocheck` do not restrict it.
 
 Once the matching core and CPU packages are built, the Vulkan package can still
 be built independently:
