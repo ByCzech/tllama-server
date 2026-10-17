@@ -16,15 +16,17 @@ The initial package set targets Debian 13 amd64. It contains:
 All native components use the pinned fork revision in `cmake/NativeSource.cmake`.
 The native gfx1250 fix is already part of that source; it is not reapplied by
 quilt. The Debian version follows the native release series: this pinned
-development snapshot uses `0.6.0~dev+b11552.2`, with a Debian revision appended.
-The `.2` identifies the memory API snapshot based on the same upstream build.
+development snapshot uses `0.6.0~dev+b11552.3`, with a Debian revision appended.
+The `.3` identifies the resolved-assignment and allocation-locality snapshot
+based on the same upstream build.
 
 ## Source export and build
 
-Apply and commit packaging changes before exporting. With an initialized
-submodule and no tracked changes, run from the repository root:
+Apply and commit packaging changes before exporting. Update the native
+submodule to the committed pin, then export from a clean checkout:
 
 ```sh
+git submodule update --init --recursive
 python3 tools/make-orig.py
 dpkg-checkbuilddeps
 dpkg-source -b .
@@ -38,6 +40,10 @@ orig archives are accepted only if their contents are identical.
 Packaging-only commits keep the native commit timestamp used in the archive,
 so a Debian revision change can reuse the same orig archive. Manual root-level
 `build*` and `stage*` directories are excluded from source diffs.
+
+This native update requires a new
+`tllama-server_0.6.0~dev+b11552.3.orig.tar.xz`; the previous `.2` archive cannot
+be reused. Rebuild the core and all installed backend packages together.
 
 The `.dsc`, orig archive and Debian archive are sufficient to unpack and build
 without Git or submodule initialization. CMake does not fetch UI assets or

@@ -127,6 +127,20 @@ driver overhead, free VRAM or the device executing every operation. iGPU
 device buffers are accounted in full as GPU buffers. Sum each buffer once,
 even when it has multiple owners; do not treat unknown sizes as zero.
 
+Buffer providers, resolved weight assignments and native allocation locality
+are separate observations. Optional `assignment` evidence explains weight
+placement while preserving buffer-provider IDs. The optional
+`allocation_locality` object has its own coverage status, deduplicated native
+allocations and bindings to buffer IDs. Vulkan supplies the selected memory
+type, heap and native flags. CUDA, ROCm/HIP, SYCL and CPU currently have no
+allocation exporter; missing locality does not make their buffer capacities
+or weight placement incomplete.
+
+Allocation spans can include padding and must not be added to buffer totals.
+Different native imports can share physical backing, so locality does not
+provide a total of physical VRAM. A sleeping/unloaded model has a known empty
+allocation inventory; an older V1 worker may omit the extension entirely.
+
 The complete V1 contract is installed with the core runtime as
 `/usr/share/doc/tllama-server-core/tllama-memory-v1.md` (possibly compressed).
 This snapshot requires matching rebuilt CPU and GPU plugins.
