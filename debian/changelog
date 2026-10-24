@@ -1,3 +1,14 @@
+tllama-server (0.7.0~dev+b11850-1) stable; urgency=medium
+
+  * Pin the native merge of official upstream 9ae73e68 with Nemotron 3.5 Bolt
+    support and upstream memory, prompt-cache, draft and GPU fixes.
+  * Retain memory API V1, resolved placement and allocation locality; adapt
+    mmap range accounting and read-only Vulkan host allocation inspection.
+  * Rebuild the core and all backend packages against the new native snapshot.
+  * Read the current version in the build-profile metadata regression check.
+
+ -- NemaChybu team APT archive <maintainers@nemachybu.cz>  Sat, 24 Oct 2026 03:00:00 +0200
+
 tllama-server (0.6.0~dev+b11552.3-1) stable; urgency=medium
 
   * Pin the native snapshot with resolved weight assignments and optional

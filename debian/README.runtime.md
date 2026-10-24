@@ -7,6 +7,7 @@ manage server processes; the executable can also be started directly.
 ## Features
 
 - Text generation and chat through the OpenAI-compatible API.
+- Nemotron 3.5 Bolt with different expert counts across MoE layers.
 - Multimodal models with a matching projector file.
 - CPU inference with automatic selection of the supported CPU instruction set
   and an OpenBLAS backend.

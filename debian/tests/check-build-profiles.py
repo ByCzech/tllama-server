@@ -139,12 +139,14 @@ def check_dispatch():
         shutil.copy(ROOT / "debian/build-component.mk", root / "debian/build-component.mk")
         for name in ("changelog", "control"):
             shutil.copy(ROOT / "debian" / name, root / "debian" / name)
+        package_version = subprocess.check_output(
+            ["dpkg-parsechangelog", "--show-field", "Version"], cwd=root, text=True).strip()
         for version, minimum in (("12.4", "525.60.13"), ("12.9", "525.60.13"), ("13.3", "580")):
             run_make(root, ["-f", "debian/build-component.mk", "override_dh_makeshlibs"],
                      [PREFIX + "cuda" + version + "-only"])
             metadata = (root / "debian/shlibs.local").read_text()
             assert f"libcuda 1 libcuda1 (>= {minimum})\n" in metadata
-            assert "libggml-base 0 tllama-server-core (= 0.6.0~dev+" in metadata
+            assert f"libggml-base 0 tllama-server-core (= {package_version})\n" in metadata
         for component, expected in (("cpu", "hardening=+all"),
                                     ("sycl", "hardening=+all optimize=-lto")):
             flags = run_make(root, ["-f", "debian/build-component.mk", "--eval",
