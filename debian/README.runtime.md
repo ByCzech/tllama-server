@@ -8,6 +8,8 @@ manage server processes; the executable can also be started directly.
 
 - Text generation and chat through the OpenAI-compatible API.
 - Nemotron 3.5 Bolt with different expert counts across MoE layers.
+- Experimental Instella-MoE GGUF inference. Real-model and
+  GPU qualification is pending; tensor split is not supported for this model.
 - Multimodal models with a matching projector file.
 - CPU inference with automatic selection of the supported CPU instruction set
   and an OpenBLAS backend.
@@ -152,9 +154,28 @@ are separate observations. Optional `assignment` evidence explains weight
 placement while preserving buffer-provider IDs. The optional
 `allocation_locality` object has its own coverage status, deduplicated native
 allocations and bindings to buffer IDs. Vulkan supplies the selected memory
-type, heap and native flags. CUDA, ROCm/HIP, SYCL and CPU currently have no
-allocation exporter; missing locality does not make their buffer capacities
-or weight placement incomplete.
+type, heap and native flags. CUDA/ROCm-HIP supply ordinary device, managed and
+host allocation metadata with the actual successful fallback path. SYCL
+supplies ordinary device USM, direct Level Zero, host USM and aligned system
+allocation metadata. Optional integrated-device attributes use saved native
+evidence; neither managed/shared memory nor an iGPU proves physical residency.
+Missing locality does not make buffer capacities or weight placement incomplete.
+
+The optional `weight_storage` extension describes deduplicated occupied weight
+byte ranges, separately from padded buffer capacities. Its role/layer and
+assignment evidence explains shared/tied weights without counting the same
+bytes twice. Check its own coverage and missing reasons before using totals.
+For bounded per-tensor diagnostics, start the worker with
+`--memory-tensor-diagnostics N` (0 disables it; maximum 4096). Diagnostics are
+off by default and their truncation does not change the main weight totals.
+
+Allocation coverage is limited to supported backing-buffer paths. CPU
+allocations and independent CPU aliases, CUDA/HIP host registrations and
+meta/split buffers, and SYCL split buffers do not gain an exporter in this
+snapshot. Internal pools, staging and library workspaces are outside this
+report's scope. GPU SDK builds and hardware tests remain separate from the
+SDK-free metadata tests; experimental Instella and legacy HIP targets require
+their own model/numerical qualification.
 
 Allocation spans can include padding and must not be added to buffer totals.
 Different native imports can share physical backing, so locality does not

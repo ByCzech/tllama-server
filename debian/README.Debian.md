@@ -16,9 +16,13 @@ The initial package set targets Debian 13 amd64. It contains:
 All native components use the pinned fork revision in `cmake/NativeSource.cmake`.
 The native gfx1250 fix is already part of that source; it is not reapplied by
 quilt. The Debian version follows the native release series: this pinned
-development snapshot uses `0.7.0~dev+b11850`, with a Debian revision appended.
+development snapshot uses `0.7.0~dev+b11850.1`, with a Debian revision appended.
 It integrates official upstream `9ae73e68`, including Nemotron 3.5 Bolt, while
 retaining the native memory API and GPU compatibility extensions.
+The `.1` snapshot adds weight-storage accounting, experimental Instella-MoE,
+CUDA/HIP/SYCL allocation metadata and the legacy HIP targets described below.
+The native runtime fingerprint is `b11850-0e9433bfd3`; build 11850 still names
+the official upstream base, while the commit identifies the fork snapshot.
 
 ## Source export and build
 
@@ -42,7 +46,7 @@ so a Debian revision change can reuse the same orig archive. Manual root-level
 `build*` and `stage*` directories are excluded from source diffs.
 
 This native update requires a new
-`tllama-server_0.7.0~dev+b11850.orig.tar.xz`; the previous 0.6.0 archive cannot
+`tllama-server_0.7.0~dev+b11850.1.orig.tar.xz`; the previous b11850 archive cannot
 be reused. Rebuild the core and all installed backend packages together.
 
 The `.dsc`, orig archive and Debian archive are sufficient to unpack and build

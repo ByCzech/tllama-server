@@ -1,3 +1,18 @@
+tllama-server (0.7.0~dev+b11850.1-1) stable; urgency=medium
+
+  * Pin native 0e9433bfd3 for the combined memory, model and legacy HIP build.
+  * Include deduplicated weight-storage ranges and bounded opt-in tensor
+    diagnostics in memory API V1, independently of buffer capacities.
+  * Add experimental Instella-MoE conversion and native model support.
+  * Export successful CUDA/HIP and SYCL/Level Zero allocation paths, retaining
+    fallback provenance, context lifetime and conservative locality evidence.
+  * Publish defined allocation-device attributes in the server report.
+  * Include native gfx900, gfx906 and gfx90c HIP targets with optional matching
+    ROCm 10.1 BLAS addons; document unqualified paths and coverage limits.
+  * Rebuild the core and every backend against the same native snapshot.
+
+ -- NemaChybu team APT archive <maintainers@nemachybu.cz>  Sun, 25 Oct 2026 10:42:55 +0100
+
 tllama-server (0.7.0~dev+b11850-1) stable; urgency=medium
 
   * Pin the native merge of official upstream 9ae73e68 with Nemotron 3.5 Bolt
