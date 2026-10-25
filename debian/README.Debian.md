@@ -158,6 +158,26 @@ relative to its own location and ROCm libraries from the versioned SDK prefix.
 Runtime dependencies on `amdrocm-runtime10.1` and `amdrocm-blas10.1` are declared
 explicitly because AMD's packages do not consistently provide shlibs metadata.
 
+Both plain `debuild` and the ROCm-only profile request 28 native GPU targets,
+including experimental legacy Vega `gfx900`, `gfx906` and `gfx90c`. Existing
+modern targets and the gfx1250 dispatch fix are retained. Native images are
+compiled for the exact target; no `HSA_OVERRIDE_GFX_VERSION` spoofing is set.
+
+Legacy cards also require the corresponding BLAS device payload at runtime:
+`amdrocm-blas10.1-gfx900`, `amdrocm-blas10.1-gfx906` or
+`amdrocm-blas10.1-gfx90c`. These are optional `Suggests`, not build dependencies
+or mandatory dependencies for every ROCm user. The addon packages enforce
+their own matching host/runtime versions; use the addons built for the
+installed stable ROCm prefix. Their library qualification does not qualify
+GGML kernels, model inference or every cache/flash-attention combination.
+
+For a targeted development build, CMake must be configured again so an old
+cache cannot retain the previous architecture list. Check that
+`build-debian-rocm10.1/CMakeCache.txt` contains all three added targets in
+`CMAKE_HIP_ARCHITECTURES`. Then build only the HIP target incrementally. A
+cache entry proves configuration only; compiling the plugin and testing it
+with matching core libraries on the actual GPU remain required.
+
 Package changes contained within `debian/` can reuse the existing orig archive.
 The source-only build guide is not installed in the user-facing package docs.
 

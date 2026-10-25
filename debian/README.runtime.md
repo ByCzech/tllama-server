@@ -39,9 +39,28 @@ CUDA plugins can be installed together. Automatic selection prefers the highest
 version; to select a suitable backend for an older GPU, run
 `sudo update-alternatives --config tllama-server-cuda`.
 
-GPU backends require the matching core and CPU package versions. The ROCm 10.1
-package does not contain kernels for legacy Vega `gfx900`, `gfx906` or `gfx90c`.
-For those devices, Vulkan is an alternative when the installed driver supports
+GPU backends require the matching core and CPU package versions.
+
+The ROCm 10.1 build also targets legacy Vega `gfx900`, `gfx906` and `gfx90c`
+experimentally. Install the BLAS addon matching the actual GPU:
+
+| GPU target | BLAS device package |
+| --- | --- |
+| gfx900 (Vega 56/64, MI25) | `amdrocm-blas10.1-gfx900` |
+| gfx906 (MI50/MI60, Radeon VII) | `amdrocm-blas10.1-gfx906` |
+| gfx90c (Vega APU, including Ryzen 7 5700G) | `amdrocm-blas10.1-gfx90c` |
+
+For example, install `amdrocm-blas10.1-gfx906` alongside
+`tllama-server-backend-rocm10.1` for an MI50. Use the addon version matching
+the installed ROCm host/runtime packages. The backend's `Suggests` lists all
+three addons; install the one needed by the GPU. They are not all required
+on modern AMD GPUs. No gfx900 spoofing or `HSA_OVERRIDE_GFX_VERSION` is needed
+for a native gfx90c build.
+
+Runtime and BLAS support do not by themselves qualify GGML operations or
+model inference on each target. These combinations remain experimental until
+tested with the chosen model, quantization, flash attention and KV cache.
+Vulkan remains an alternative when the device's installed driver supports
 compute. ROCm device discovery alone does not establish kernel compatibility.
 
 ## Run a model
