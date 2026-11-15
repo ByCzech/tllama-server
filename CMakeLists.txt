@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(tllama-server VERSION 0.7.0 LANGUAGES C CXX)
+project(tllama-server VERSION 1.0.0 LANGUAGES C CXX)
 
 if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
     message(FATAL_ERROR "The initial runtime installation layout supports Linux only")

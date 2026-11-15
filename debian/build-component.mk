@@ -286,11 +286,12 @@ endif
 
 override_dh_makeshlibs:
 	# These SONAMEs are private to this distribution, not global library APIs.
+	# The pinned v1.0.0 GGML/llama/mtmd libraries use SONAME 1.
 	# Provide build-local metadata without publishing global shlibs or adding
 	# ldconfig maintainer scripts to the packages.
 	{ \
 		for library in ggml-base ggml llama llama-common mtmd; do \
-			printf 'lib%s 0 $(CORE_PACKAGE) (= $(DEB_VERSION))\n' "$$library"; \
+			printf 'lib%s 1 $(CORE_PACKAGE) (= $(DEB_VERSION))\n' "$$library"; \
 		done; \
 		if [ -n "$(CUDA_ONLY)" ]; then \
 			printf 'libcuda 1 libcuda1 (>= $(CUDA_DRIVER_MIN))\n'; \

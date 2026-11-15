@@ -1,3 +1,16 @@
+tllama-server (1.0.0~dev+b12359.1-1) stable; urgency=medium
+
+  * Pin native c0819bbbae, merging official llama.cpp v1.0.0 (b12359).
+  * Retain Memory API V1, experimental Instella-MoE and GPU compatibility
+    extensions; adapt projector inspection and persistent context buffers.
+  * Select versioned oneAPI 2026.2 SDK/runtime components for SYCL, with
+    oneDNN 2026.1, TBB 2023.2 and explicit Intel OpenMP threading.
+  * Update private shlibs metadata for the native SONAME 1 libraries.
+  * Verify the installed server fingerprint against the source pin.
+  * Rebuild the core and every backend against the same native snapshot.
+
+ -- NemaChybu team APT archive <maintainers@nemachybu.cz>  Mon, 16 Nov 2026 01:00:00 +0100
+
 tllama-server (0.7.0~dev+b11850.1-1) stable; urgency=medium
 
   * Pin native 0e9433bfd3 for the combined memory, model and legacy HIP build.

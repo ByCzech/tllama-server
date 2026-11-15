@@ -35,6 +35,16 @@ def main():
                 if re.match(r"\s*lib(?:ggml|llama|mtmd)[^ ]*\s+=>", line):
                     if str(runtime) + "/" not in line:
                         raise RuntimeError(f"Private library resolved outside the staged runtime: {line}")
+        metadata = (Path(__file__).resolve().parents[1] / "cmake/NativeSource.cmake").read_text()
+        revision = re.search(r'set\(TLLAMA_LLAMA_REVISION "([0-9a-f]{40})"\)', metadata).group(1)
+        build = re.search(r'set\(TLLAMA_LLAMA_BUILD_NUMBER ([0-9]+)\)', metadata).group(1)
+        version = subprocess.run([str(server), "--version"], env=environment, cwd=root,
+                                 text=True, capture_output=True, check=True)
+        expected = f"(build {build}, commit {revision[:10]})"
+        if expected not in version.stdout + version.stderr:
+            raise RuntimeError(f"Staged server does not match the pinned native fingerprint {expected}:\n"
+                               f"{version.stdout}{version.stderr}")
+        print(version.stdout + version.stderr, end="")
         result = subprocess.run(
             [str(server), "--log-verbosity", "5", "--list-devices"],
             env=environment, cwd=root, text=True, capture_output=True, check=True)

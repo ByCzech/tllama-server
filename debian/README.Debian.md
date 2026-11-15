@@ -16,13 +16,15 @@ The initial package set targets Debian 13 amd64. It contains:
 All native components use the pinned fork revision in `cmake/NativeSource.cmake`.
 The native gfx1250 fix is already part of that source; it is not reapplied by
 quilt. The Debian version follows the native release series: this pinned
-development snapshot uses `0.7.0~dev+b11850.1`, with a Debian revision appended.
-It integrates official upstream `9ae73e68`, including Nemotron 3.5 Bolt, while
-retaining the native memory API and GPU compatibility extensions.
-The `.1` snapshot adds weight-storage accounting, experimental Instella-MoE,
-CUDA/HIP/SYCL allocation metadata and the legacy HIP targets described below.
-The native runtime fingerprint is `b11850-0e9433bfd3`; build 11850 still names
-the official upstream base, while the commit identifies the fork snapshot.
+development snapshot uses `1.0.0~dev+b12359.1`, with a Debian revision appended.
+It merges official llama.cpp `v1.0.0` / `b12359` while retaining Memory API V1,
+experimental Instella-MoE, legacy HIP targets and GPU compatibility extensions.
+Projector inspection uses the shared mtmd scheduler; persistent KV rotation
+and layer-input/NextN export buffers are included in the existing memory scope.
+The native runtime fingerprint is `b12359-c0819bbbae`; build 12359 names the
+fixed official upstream base, while the commit identifies the fork snapshot.
+The versioned native libraries use upstream SONAME 1, and build-local private shlibs
+metadata matches that ABI. Core and backend packages must be upgraded together.
 
 ## Source export and build
 
@@ -46,7 +48,7 @@ so a Debian revision change can reuse the same orig archive. Manual root-level
 `build*` and `stage*` directories are excluded from source diffs.
 
 This native update requires a new
-`tllama-server_0.7.0~dev+b11850.1.orig.tar.xz`; the previous b11850 archive cannot
+`tllama-server_1.0.0~dev+b12359.1.orig.tar.xz`; the previous 0.7.0 archive cannot
 be reused. Rebuild the core and all installed backend packages together.
 
 The `.dsc`, orig archive and Debian archive are sufficient to unpack and build
@@ -140,7 +142,8 @@ global shlibs metadata or run ldconfig.
 
 After component installation, the build copies the split runtime into a
 temporary prefix, checks shared library resolution and verifies that the
-server loads its CPU and OpenBLAS plugins there. This check does not run model
+server fingerprint matches the native pin and that it loads its CPU and
+OpenBLAS plugins there. This check does not run model
 inference. It runs even when `DEB_BUILD_OPTIONS=nocheck` is used because it
 validates the package installation layout.
 Vulkan device discovery and inference are checked manually on the target

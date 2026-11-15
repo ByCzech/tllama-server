@@ -147,7 +147,7 @@ def check_dispatch():
                      [PREFIX + "cuda" + version + "-only"])
             metadata = (root / "debian/shlibs.local").read_text()
             assert f"libcuda 1 libcuda1 (>= {minimum})\n" in metadata
-            assert f"libggml-base 0 tllama-server-core (= {package_version})\n" in metadata
+            assert f"libggml-base 1 tllama-server-core (= {package_version})\n" in metadata
         for component, expected in (("cpu", "hardening=+all"),
                                     ("sycl", "hardening=+all optimize=-lto")):
             flags = run_make(root, ["-f", "debian/build-component.mk", "--eval",
