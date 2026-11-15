@@ -253,19 +253,46 @@ debuild -Ppkg.tllama-server.sycl-only -j"$(nproc)"
 ```
 
 This profile builds only the SYCL package in `build-debian-sycl`. It selects
-oneAPI icx/icpx, oneMKL, oneDNN and TBB explicitly under `/opt/intel/oneapi`,
-without requiring an interactive `setvars.sh`. The native GCC installation
-reported by the default `g++` supplies the C++ runtime and headers, avoiding
-accidental selection of installed cross toolchains. Debian hardening flags are
-preserved alongside this GCC selection; GCC-specific LTO flags are disabled
-for the IntelLLVM profile.
+fixed, coinstallable oneAPI series under `/opt/intel/oneapi`, without requiring
+an interactive `setvars.sh` or following the mutable `latest` links:
+
+| Component | Directory | Selected package baseline |
+| --- | --- | --- |
+| DPC++ compiler/runtime | `compiler/2026.2` | `2026.2.0-863` |
+| oneMKL SYCL | `mkl/2026.2` | `2026.2.1-11` |
+| oneDNN GPU/SYCL | `dnnl/2026.1` | `2026.1.0-617` |
+| oneTBB | `tbb/2023.2` | `2023.2.0-492` |
+| Level Zero headers/loader | Debian `libze-dev` / `libze1` | `1.20.6` |
+
+Build and runtime dependencies name these versioned oneAPI packages with the
+baseline as a lower bound. A newer patch within the same series is allowed;
+a later major/minor `latest` does not redirect the packaged plugin. oneDNN
+2026.1 uses the 2026.2 compiler runtime and is intentional. oneMKL explicitly
+uses `MKL_THREADING=intel_thread` for the classic and SYCL APIs;
+Intel OpenMP 2026.2 is a build/runtime dependency, and its selected
+`libiomp5.so` path is passed explicitly. TBB remains available for oneDNN and
+the SYCL runtime.
+
+The native GCC installation reported by the default `g++` supplies the C++
+runtime and headers, avoiding accidental selection of installed cross toolchains.
+Debian hardening flags are preserved; GCC-specific LTO flags are disabled for
+IntelLLVM. oneDNN, oneMKL and TBB CMake package directories are explicit.
+The build uses the selected SDK library paths without inheriting an external
+`LD_LIBRARY_PATH`.
 
 The Intel target enables FP16, SYCL graphs, host-memory fallback, Level Zero
-and oneDNN. The device architecture is left unset to produce portable SYCL
-device code rather than an image restricted to the build host GPU.
+and oneDNN. If requested Level Zero support was silently disabled upstream,
+packaging configuration fails. The device architecture is left unset to produce
+portable SYCL device code rather than an image restricted to the build host GPU.
+
+The exact installed component versions, selected paths, compiler version and
+Level Zero pkg-config version are recorded during configure and installed as
+`/usr/share/doc/tllama-server-backend-sycl/oneapi-build-versions.txt` (possibly
+compressed by debhelper). Keep this record and the build log with `.buildinfo`.
+These baselines do not replace actual SDK compilation and Intel GPU testing.
 
 The module is installed under `backends/sycl`; `tllama-server-sycl` alternatives
 supplies the loader link at `/usr/lib/tllama/server/libggml-sycl.so`. Its runtime
-paths include the compiler, oneMKL, oneDNN and TBB library directories. oneAPI
-runtime package dependencies are explicit, while shlibdeps collects standard
+paths include the versioned compiler, oneMKL, oneDNN and TBB library directories.
+oneAPI runtime package dependencies are explicit, while shlibdeps collects standard
 Debian dependencies. Building does not require an Intel GPU.

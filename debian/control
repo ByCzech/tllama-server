@@ -17,11 +17,12 @@ Build-Depends:
  cuda-toolkit-12-9 <!pkg.tllama-server.cpu-only !pkg.tllama-server.vulkan-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only !pkg.tllama-server.cuda12.9-only !pkg.tllama-server.cuda13.3-only !pkg.tllama-server.sycl-only> <pkg.tllama-server.cuda12.9-only> <pkg.tllama-server.all>,
  cuda-toolkit-13-3 <!pkg.tllama-server.cpu-only !pkg.tllama-server.vulkan-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only !pkg.tllama-server.cuda12.9-only !pkg.tllama-server.cuda13.3-only !pkg.tllama-server.sycl-only> <pkg.tllama-server.cuda13.3-only> <pkg.tllama-server.all>,
  amdrocm-core-sdk10.1 (>= 10.1.0) <!pkg.tllama-server.cpu-only !pkg.tllama-server.vulkan-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only !pkg.tllama-server.cuda12.9-only !pkg.tllama-server.cuda13.3-only !pkg.tllama-server.sycl-only> <pkg.tllama-server.rocm-only> <pkg.tllama-server.all>,
- intel-oneapi-compiler-dpcpp-cpp <!pkg.tllama-server.cpu-only !pkg.tllama-server.vulkan-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only !pkg.tllama-server.cuda12.9-only !pkg.tllama-server.cuda13.3-only !pkg.tllama-server.sycl-only> <pkg.tllama-server.sycl-only> <pkg.tllama-server.all>,
- intel-oneapi-mkl-sycl-devel <!pkg.tllama-server.cpu-only !pkg.tllama-server.vulkan-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only !pkg.tllama-server.cuda12.9-only !pkg.tllama-server.cuda13.3-only !pkg.tllama-server.sycl-only> <pkg.tllama-server.sycl-only> <pkg.tllama-server.all>,
- intel-oneapi-dnnl-devel <!pkg.tllama-server.cpu-only !pkg.tllama-server.vulkan-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only !pkg.tllama-server.cuda12.9-only !pkg.tllama-server.cuda13.3-only !pkg.tllama-server.sycl-only> <pkg.tllama-server.sycl-only> <pkg.tllama-server.all>,
- intel-oneapi-tbb-devel <!pkg.tllama-server.cpu-only !pkg.tllama-server.vulkan-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only !pkg.tllama-server.cuda12.9-only !pkg.tllama-server.cuda13.3-only !pkg.tllama-server.sycl-only> <pkg.tllama-server.sycl-only> <pkg.tllama-server.all>,
- libze-dev <!pkg.tllama-server.cpu-only !pkg.tllama-server.vulkan-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only !pkg.tllama-server.cuda12.9-only !pkg.tllama-server.cuda13.3-only !pkg.tllama-server.sycl-only> <pkg.tllama-server.sycl-only> <pkg.tllama-server.all>
+ intel-oneapi-compiler-dpcpp-cpp-2026.2 (>= 2026.2.0-863) <!pkg.tllama-server.cpu-only !pkg.tllama-server.vulkan-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only !pkg.tllama-server.cuda12.9-only !pkg.tllama-server.cuda13.3-only !pkg.tllama-server.sycl-only> <pkg.tllama-server.sycl-only> <pkg.tllama-server.all>,
+ intel-oneapi-mkl-sycl-devel-2026.2 (>= 2026.2.1-11) <!pkg.tllama-server.cpu-only !pkg.tllama-server.vulkan-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only !pkg.tllama-server.cuda12.9-only !pkg.tllama-server.cuda13.3-only !pkg.tllama-server.sycl-only> <pkg.tllama-server.sycl-only> <pkg.tllama-server.all>,
+ intel-oneapi-dnnl-devel-2026.1 (>= 2026.1.0-617) <!pkg.tllama-server.cpu-only !pkg.tllama-server.vulkan-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only !pkg.tllama-server.cuda12.9-only !pkg.tllama-server.cuda13.3-only !pkg.tllama-server.sycl-only> <pkg.tllama-server.sycl-only> <pkg.tllama-server.all>,
+ intel-oneapi-tbb-devel-2023.2 (>= 2023.2.0-492) <!pkg.tllama-server.cpu-only !pkg.tllama-server.vulkan-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only !pkg.tllama-server.cuda12.9-only !pkg.tllama-server.cuda13.3-only !pkg.tllama-server.sycl-only> <pkg.tllama-server.sycl-only> <pkg.tllama-server.all>,
+ intel-oneapi-openmp-2026.2 (>= 2026.2.0-863) <!pkg.tllama-server.cpu-only !pkg.tllama-server.vulkan-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only !pkg.tllama-server.cuda12.9-only !pkg.tllama-server.cuda13.3-only !pkg.tllama-server.sycl-only> <pkg.tllama-server.sycl-only> <pkg.tllama-server.all>,
+ libze-dev (>= 1.20.6) <!pkg.tllama-server.cpu-only !pkg.tllama-server.vulkan-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only !pkg.tllama-server.cuda12.9-only !pkg.tllama-server.cuda13.3-only !pkg.tllama-server.sycl-only> <pkg.tllama-server.sycl-only> <pkg.tllama-server.all>
 Build-Conflicts:
  libamdhip64-dev <!pkg.tllama-server.cpu-only !pkg.tllama-server.vulkan-only !pkg.tllama-server.rocm-only !pkg.tllama-server.cuda12.4-only !pkg.tllama-server.cuda12.9-only !pkg.tllama-server.cuda13.3-only !pkg.tllama-server.sycl-only> <pkg.tllama-server.rocm-only> <pkg.tllama-server.all>
 Standards-Version: 4.7.2
@@ -150,10 +151,12 @@ Build-Profiles: <!pkg.tllama-server.cpu-only !pkg.tllama-server.vulkan-only !pkg
 Depends:
  tllama-server-core (= ${binary:Version}),
  tllama-server-backend-cpu (= ${binary:Version}),
- intel-oneapi-compiler-dpcpp-cpp-runtime,
- intel-oneapi-mkl-sycl-blas,
- intel-oneapi-dnnl,
- intel-oneapi-tbb,
+ intel-oneapi-compiler-dpcpp-cpp-runtime-2026.2 (>= 2026.2.0-863),
+ intel-oneapi-mkl-sycl-blas-2026.2 (>= 2026.2.1-11),
+ intel-oneapi-dnnl-2026.1 (>= 2026.1.0-617),
+ intel-oneapi-tbb-2023.2 (>= 2023.2.0-492),
+ intel-oneapi-openmp-2026.2 (>= 2026.2.0-863),
+ libze1 (>= 1.20.6),
  ${shlibs:Depends},
  ${misc:Depends}
 Description: TLlama dynamically loadable Intel SYCL backend

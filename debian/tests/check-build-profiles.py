@@ -33,8 +33,9 @@ DEPENDENCIES = {
     "cuda12.9": {"cuda-toolkit-12-9"},
     "cuda13.3": {"cuda-toolkit-13-3"},
     "sycl": {
-        "intel-oneapi-compiler-dpcpp-cpp", "intel-oneapi-mkl-sycl-devel",
-        "intel-oneapi-dnnl-devel", "intel-oneapi-tbb-devel", "libze-dev",
+        "intel-oneapi-compiler-dpcpp-cpp-2026.2", "intel-oneapi-mkl-sycl-devel-2026.2",
+        "intel-oneapi-dnnl-devel-2026.1", "intel-oneapi-tbb-devel-2023.2",
+        "intel-oneapi-openmp-2026.2", "libze-dev",
     },
 }
 GOALS = (
@@ -155,7 +156,65 @@ def check_dispatch():
             assert flags.stdout.strip() == expected, flags
 
 
+def check_sycl_sdk_selection():
+    # Exercise the actual make recipe with coinstalled SDK series and a hostile
+    # shell environment. The fixture performs no compiler or GPU qualification.
+    with tempfile.TemporaryDirectory(prefix="tllama-sycl-sdk-") as directory:
+        root = Path(directory)
+        (root / "debian").mkdir()
+        for name in ("build-component.mk", "control", "changelog"):
+            shutil.copy(ROOT / "debian" / name, root / "debian" / name)
+        sdk = root / "oneapi"
+        for name in ("compiler/2026.2/lib/libiomp5.so",
+                     "mkl/2026.2/lib/cmake/mkl/MKLConfig.cmake",
+                     "dnnl/2026.1/lib/cmake/dnnl/dnnl-config.cmake",
+                     "tbb/2023.2/lib/cmake/tbb/TBBConfig.cmake",
+                     "gcc/crtbeginS.o", "gcc/libstdc++.so"):
+            path = sdk / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.touch()
+        tools = root / "bin"
+        tools.mkdir()
+        def executable(path, content):
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(content)
+            path.chmod(0o755)
+        for compiler in ("icx", "icpx"):
+            executable(sdk / "compiler/2026.2/bin" / compiler, "#!/bin/sh\nprintf 'fixture compiler\\n'\n")
+        executable(tools / "pkgconf", "#!/bin/sh\nprintf '1.20.6\\n'\n")
+        executable(tools / "dpkg-query", "#!/usr/bin/env python3\nimport sys\n"
+                   "assert sys.argv[1] == '-W'\n"
+                   "assert sys.argv[2] == r'-f=${binary:Package}\\t${Version}\\n', sys.argv\n"
+                   "print('fixture packages recorded')\n")
+        executable(tools / "dh_auto_configure", "#!/usr/bin/env python3\nimport json, os, sys\n"
+                   "from pathlib import Path\n"
+                   "Path('configured.json').write_text(json.dumps({'args':sys.argv[1:],"
+                   "'libs':os.environ['LD_LIBRARY_PATH'], 'mkl':os.environ['MKLROOT']}))\n")
+        env = os.environ.copy()
+        for key in ("MAKEFLAGS", "MFLAGS", "MAKEOVERRIDES"):
+            env.pop(key, None)
+        env.update(PATH=str(tools) + os.pathsep + env["PATH"],
+                   DEB_BUILD_PROFILES=PREFIX + "sycl-only",
+                   LD_LIBRARY_PATH="/foreign-sdk/lib", MKLROOT="/foreign-sdk/mkl")
+        result = subprocess.run(["make", "--silent", "-f", "debian/build-component.mk",
+                        "override_dh_auto_configure", "ONEAPI_ROOT=" + str(sdk),
+                        "GNU_GCC_INSTALL_DIR=" + str(sdk / "gcc")],
+                       cwd=root, env=env, capture_output=True, text=True)
+        assert result.returncode == 0, result.stdout + result.stderr
+        configured = json.loads((root / "configured.json").read_text())
+        assert configured["mkl"] == str(sdk / "mkl/2026.2")
+        assert "/foreign-sdk" not in configured["libs"]
+        assert "latest" not in configured["libs"]
+        assert "-DMKL_THREADING=intel_thread" in configured["args"]
+        assert "-DOMP_LIBRARY=" + str(sdk / "compiler/2026.2/lib/libiomp5.so") in configured["args"]
+        assert "-DDNNL_DIR=" + str(sdk / "dnnl/2026.1/lib/cmake/dnnl") in configured["args"]
+        versions = (root / "build-debian-sycl/oneapi-build-versions.txt").read_text()
+        assert "fixture packages recorded" in versions and "fixture compiler" in versions
+        assert "MKL_THREADING=intel_thread" in versions and "1.20.6" in versions
+
+
 if __name__ == "__main__":
     count = check_profile_matrix()
     check_dispatch()
-    print(f"Passed {count} profile cases, native dispatch, failure propagation and SDK metadata checks")
+    check_sycl_sdk_selection()
+    print(f"Passed {count} profile cases, native dispatch, failure propagation and SDK selection/metadata checks")

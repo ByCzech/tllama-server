@@ -91,6 +91,15 @@ unset(GGML_AVAILABLE_BACKENDS CACHE)
 # our runtime target are built; CLI, converters and development files are skipped.
 add_subdirectory(vendor/llama.cpp native EXCLUDE_FROM_ALL)
 
+# Upstream can keep configuring after failing to find Level Zero. A Debian
+# SYCL build that requested the API must not silently lose its allocation path.
+if(GGML_SYCL AND GGML_SYCL_SUPPORT_LEVEL_ZERO_API)
+    get_target_property(sycl_definitions ggml-sycl COMPILE_DEFINITIONS)
+    if(NOT "GGML_SYCL_SUPPORT_LEVEL_ZERO_API" IN_LIST sycl_definitions)
+        message(FATAL_ERROR "SYCL requested Level Zero but its headers/loader were not enabled")
+    endif()
+endif()
+
 set(runtime_targets)
 if(TLLAMA_BUILD_SERVER)
     set(core_libraries ggml-base ggml llama llama-common mtmd llama-server-impl)

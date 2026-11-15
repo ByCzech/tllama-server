@@ -21,14 +21,14 @@ ROCM_ROOT = /opt/rocm/core-10.1
 ROCM_TARGETS = gfx900;gfx906;gfx90c;gfx908;gfx90a;gfx942;gfx950;gfx1010;gfx1011;gfx1012;gfx1030;gfx1031;gfx1032;gfx1033;gfx1034;gfx1035;gfx1036;gfx1100;gfx1101;gfx1102;gfx1103;gfx1150;gfx1151;gfx1152;gfx1153;gfx1200;gfx1201;gfx1250
 SYCL_PACKAGE = tllama-server-backend-sycl
 ONEAPI_ROOT = /opt/intel/oneapi
-ONEAPI_COMPILER_ROOT = $(ONEAPI_ROOT)/compiler/latest
-ONEAPI_MKL_ROOT = $(ONEAPI_ROOT)/mkl/latest
-ONEAPI_DNNL_ROOT = $(ONEAPI_ROOT)/dnnl/latest
-ONEAPI_TBB_ROOT = $(ONEAPI_ROOT)/tbb/latest
+ONEAPI_COMPILER_ROOT = $(ONEAPI_ROOT)/compiler/2026.2
+ONEAPI_MKL_ROOT = $(ONEAPI_ROOT)/mkl/2026.2
+ONEAPI_DNNL_ROOT = $(ONEAPI_ROOT)/dnnl/2026.1
+ONEAPI_TBB_ROOT = $(ONEAPI_ROOT)/tbb/2023.2
 GNU_GCC_INSTALL_DIR = $(shell dirname "$$(g++ -print-file-name=crtbeginS.o)")
 ONEAPI_LIBRARY_PATH = $(ONEAPI_COMPILER_ROOT)/lib:$(ONEAPI_MKL_ROOT)/lib:$(ONEAPI_DNNL_ROOT)/lib:$(ONEAPI_TBB_ROOT)/lib
 ONEAPI_PREFIX_PATH = $(ONEAPI_COMPILER_ROOT):$(ONEAPI_MKL_ROOT):$(ONEAPI_DNNL_ROOT):$(ONEAPI_TBB_ROOT)
-ONEAPI_ENV = env ONEAPI_ROOT=$(ONEAPI_ROOT) MKLROOT=$(ONEAPI_MKL_ROOT) DNNLROOT=$(ONEAPI_DNNL_ROOT) TBBROOT=$(ONEAPI_TBB_ROOT) PATH=$(ONEAPI_COMPILER_ROOT)/bin:$$PATH LD_LIBRARY_PATH=$(ONEAPI_LIBRARY_PATH)$${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH}
+ONEAPI_ENV = env ONEAPI_ROOT=$(ONEAPI_ROOT) CMPLR_ROOT=$(ONEAPI_COMPILER_ROOT) MKLROOT=$(ONEAPI_MKL_ROOT) DNNLROOT=$(ONEAPI_DNNL_ROOT) TBBROOT=$(ONEAPI_TBB_ROOT) PATH=$(ONEAPI_COMPILER_ROOT)/bin:$$PATH LD_LIBRARY_PATH=$(ONEAPI_LIBRARY_PATH)
 RUNTIME_DIR = usr/lib/tllama/server
 CPU_ONLY = $(filter pkg.tllama-server.cpu-only,$(DEB_BUILD_PROFILES))
 VULKAN_ONLY = $(filter pkg.tllama-server.vulkan-only,$(DEB_BUILD_PROFILES))
@@ -179,9 +179,26 @@ else ifneq ($(SYCL_ONLY),)
 	test -x $(ONEAPI_COMPILER_ROOT)/bin/icpx
 	test -f $(GNU_GCC_INSTALL_DIR)/crtbeginS.o
 	test -f $(GNU_GCC_INSTALL_DIR)/libstdc++.so
-	test -d $(ONEAPI_MKL_ROOT)
-	test -d $(ONEAPI_DNNL_ROOT)
+	test -f $(ONEAPI_COMPILER_ROOT)/lib/libiomp5.so
+	test -f $(ONEAPI_MKL_ROOT)/lib/cmake/mkl/MKLConfig.cmake
+	test -f $(ONEAPI_DNNL_ROOT)/lib/cmake/dnnl/dnnl-config.cmake
 	test -f $(ONEAPI_TBB_ROOT)/lib/cmake/tbb/TBBConfig.cmake
+	pkgconf --atleast-version=1.20.6 level-zero
+	mkdir -p $(BUILD_DIR)
+	# Keep the exact installed patch versions with the binary package.
+	set -e; { \
+		printf '%s\n' 'compiler=$(ONEAPI_COMPILER_ROOT)' 'mkl=$(ONEAPI_MKL_ROOT)' \
+			'dnnl=$(ONEAPI_DNNL_ROOT)' 'tbb=$(ONEAPI_TBB_ROOT)' 'MKL_THREADING=intel_thread'; \
+		dpkg-query -W -f='$${binary:Package}\t$${Version}\n' \
+			intel-oneapi-compiler-dpcpp-cpp-2026.2 intel-oneapi-compiler-dpcpp-cpp-runtime-2026.2 \
+			intel-oneapi-compiler-shared-runtime-2026.2 intel-oneapi-compiler-shared-2026.2 \
+			intel-oneapi-mkl-sycl-devel-2026.2 intel-oneapi-mkl-sycl-blas-2026.2 intel-oneapi-mkl-core-2026.2 \
+			intel-oneapi-dnnl-devel-2026.1 intel-oneapi-dnnl-2026.1 \
+			intel-oneapi-tbb-devel-2023.2 intel-oneapi-tbb-2023.2 \
+			intel-oneapi-openmp-2026.2 libze-dev libze1; \
+		$(ONEAPI_COMPILER_ROOT)/bin/icpx --version; \
+		pkgconf --modversion level-zero; \
+	} > $(BUILD_DIR)/oneapi-build-versions.txt
 	# Pin native GCC to avoid IntelLLVM selecting a gcc-cross installation.
 	$(ONEAPI_ENV) dh_auto_configure $(AUTO_BUILD_OPTIONS) -- \
 		-DCMAKE_BUILD_TYPE=Release \
@@ -191,6 +208,10 @@ else ifneq ($(SYCL_ONLY),)
 		"-DCMAKE_CXX_FLAGS=$(CXXFLAGS) $(CPPFLAGS) --gcc-install-dir=$(GNU_GCC_INSTALL_DIR)" \
 		"-DCMAKE_PREFIX_PATH=$(subst :,;,$(ONEAPI_PREFIX_PATH))" \
 		-DTBB_DIR=$(ONEAPI_TBB_ROOT)/lib/cmake/tbb \
+		-DMKL_DIR=$(ONEAPI_MKL_ROOT)/lib/cmake/mkl \
+		-DMKL_THREADING=intel_thread \
+		-DOMP_LIBRARY=$(ONEAPI_COMPILER_ROOT)/lib/libiomp5.so \
+		-DDNNL_DIR=$(ONEAPI_DNNL_ROOT)/lib/cmake/dnnl \
 		-DTLLAMA_BUILD_SERVER=OFF \
 		-DTLLAMA_INSTALL_LIBDIR=lib/tllama/server \
 		-DTLLAMA_BACKEND_INSTALL_DIR=lib/tllama/server/backends/sycl \
@@ -259,6 +280,8 @@ endif
 ifneq ($(SYCL_ONLY),)
 	DESTDIR=$(CURDIR)/debian/$(SYCL_PACKAGE) \
 		cmake --install $(BUILD_DIR) --component backend-sycl
+	install -D -m 0644 $(BUILD_DIR)/oneapi-build-versions.txt \
+		debian/$(SYCL_PACKAGE)/usr/share/doc/$(SYCL_PACKAGE)/oneapi-build-versions.txt
 endif
 
 override_dh_makeshlibs:
