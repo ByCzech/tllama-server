@@ -7,7 +7,7 @@ The initial package set targets Debian 13 amd64. It contains:
 - `tllama-server-backend-cpu`: portable CPU variants and the OpenBLAS plugin.
 - `tllama-server-backend-vulkan`: the Vulkan compute plugin, with dependencies
   on the exactly matching core and CPU packages.
-- `tllama-server-backend-rocm10.1`: the optional ROCm 10.1 HIP plugin.
+- `tllama-server-backend-rocm10.2`: the optional ROCm 10.2 HIP plugin.
 - `tllama-server-backend-cuda12.4`: the optional Debian CUDA 12.4 plugin.
 - `tllama-server-backend-cuda12.9`: the optional NVIDIA CUDA 12.9 plugin.
 - `tllama-server-backend-cuda13.3`: the optional NVIDIA CUDA 13.3 plugin.
@@ -16,12 +16,17 @@ The initial package set targets Debian 13 amd64. It contains:
 All native components use the pinned fork revision in `cmake/NativeSource.cmake`.
 The native gfx1250 fix is already part of that source; it is not reapplied by
 quilt. The Debian version follows the native release series: this pinned
-development snapshot uses `1.0.0~dev+b12359.1`, with a Debian revision appended.
+development snapshot uses `1.0.0~dev+b12359.2`, with a Debian revision appended.
 It merges official llama.cpp `v1.0.0` / `b12359` while retaining Memory API V1,
 experimental Instella-MoE, legacy HIP targets and GPU compatibility extensions.
 Projector inspection uses the shared mtmd scheduler; persistent KV rotation
 and layer-input/NextN export buffers are included in the existing memory scope.
-The native runtime fingerprint is `b12359-c0819bbbae`; build 12359 names the
+Selected post-release fixes cover GCN MMQ/Stream-K, HIP MoE/LoRA, CDNA GDN,
+Vulkan attention, SYCL attention masks, HTTP streaming connection reuse and
+recurrent-state NaN reset. The exact upstream commits and one compatibility
+adaptation are recorded in
+`vendor/llama.cpp/docs/development/tllama-post100-backports.md`.
+The native runtime fingerprint is `b12359-e148b6dbe6`; build 12359 names the
 fixed official upstream base, while the commit identifies the fork snapshot.
 The versioned native libraries use upstream SONAME 1, and build-local private shlibs
 metadata matches that ABI. Core and backend packages must be upgraded together.
@@ -48,7 +53,7 @@ so a Debian revision change can reuse the same orig archive. Manual root-level
 `build*` and `stage*` directories are excluded from source diffs.
 
 This native update requires a new
-`tllama-server_1.0.0~dev+b12359.1.orig.tar.xz`; the previous 0.7.0 archive cannot
+`tllama-server_1.0.0~dev+b12359.2.orig.tar.xz`; the previous b12359.1 archive cannot
 be reused. Rebuild the core and all installed backend packages together.
 
 The `.dsc`, orig archive and Debian archive are sufficient to unpack and build
@@ -74,9 +79,9 @@ CMake targets:
   `build-debian-vulkan`. OpenSSL/OpenBLAS development dependencies are not
   required, and neither the server nor CPU plugins are compiled.
 
-- `pkg.tllama-server.rocm-only`: only the ROCm 10.1 package in
-  `build-debian-rocm10.1`, using TheRock under `/opt/rocm/core-10.1`.
-  The build requires `amdrocm-core-sdk10.1` and conflicts with the legacy
+- `pkg.tllama-server.rocm-only`: only the ROCm 10.2 package in
+  `build-debian-rocm10.2`, using TheRock under `/opt/rocm/core-10.2`.
+  The build requires `amdrocm-core-sdk10.2` and conflicts with the legacy
   `libamdhip64-dev` headers. CPU/Vulkan/OpenSSL/OpenBLAS development packages
   are not required by this profile.
 
@@ -158,12 +163,26 @@ debuild -Ppkg.tllama-server.rocm-only -j"$(nproc)"
 
 The SDK's HIP compiler, bitcode and CMake packages are selected explicitly.
 The installed module is
-`/usr/lib/tllama/server/backends/rocm10.1/libggml-hip.so`.
+`/usr/lib/tllama/server/backends/rocm10.2/libggml-hip.so`.
 The `tllama-server-rocm` alternatives group supplies the default loader link at
 `/usr/lib/tllama/server/libggml-hip.so`. The module resolves common libraries
 relative to its own location and ROCm libraries from the versioned SDK prefix.
-Runtime dependencies on `amdrocm-runtime10.1` and `amdrocm-blas10.1` are declared
+Runtime dependencies on `amdrocm-runtime10.2`, `amdrocm-blas10.2` and
+`amdrocm-blas-host10.2` (at least `10.2.0-2`) are declared
 explicitly because AMD's packages do not consistently provide shlibs metadata.
+
+Only the 10.2 HIP plugin is built by this source version. Before the first
+source export after switching from 10.1, remove any obsolete generated staging
+directory `debian/tllama-server-backend-rocm10.1` and its generated
+`.debhelper.log` / `.substvars` files. `dh_clean` knows the current control
+package names; it cannot identify this removed name. No automatic cleanup of
+manual root-level build or staging directories is added. The old
+`build-debian-rocm10.1` tree can be removed manually when no longer needed.
+
+Keep the previous complete package set for rollback. The 10.1 backend depends
+on that set's exact core/CPU version; replace it with the 10.2 backend when
+installing the new set, as described in `README.runtime.md`. This source does
+not produce a transitional package or rebuild a second HIP SDK version.
 
 Both plain `debuild` and the ROCm-only profile request 28 native GPU targets,
 including experimental legacy Vega `gfx900`, `gfx906` and `gfx90c`. Existing
@@ -171,16 +190,20 @@ modern targets and the gfx1250 dispatch fix are retained. Native images are
 compiled for the exact target; no `HSA_OVERRIDE_GFX_VERSION` spoofing is set.
 
 Legacy cards also require the corresponding BLAS device payload at runtime:
-`amdrocm-blas10.1-gfx900`, `amdrocm-blas10.1-gfx906` or
-`amdrocm-blas10.1-gfx90c`. These are optional `Suggests`, not build dependencies
+`amdrocm-blas10.2-gfx900`, `amdrocm-blas10.2-gfx906` or
+`amdrocm-blas10.2-gfx90c`. These are optional `Suggests`, not build dependencies
 or mandatory dependencies for every ROCm user. The addon packages enforce
 their own matching host/runtime versions; use the addons built for the
 installed stable ROCm prefix. Their library qualification does not qualify
 GGML kernels, model inference or every cache/flash-attention combination.
+The three legacy addons may be published separately from AMD's modern targets;
+their availability is required for legacy runtime testing, not compilation of
+the plugin. Do not substitute 10.1 device payloads for a 10.2 host runtime.
+Keep mmap disabled on these legacy targets; no kernel/KFD fix is assumed.
 
 For a targeted development build, CMake must be configured again so an old
 cache cannot retain the previous architecture list. Check that
-`build-debian-rocm10.1/CMakeCache.txt` contains all three added targets in
+`build-debian-rocm10.2/CMakeCache.txt` contains all three added targets in
 `CMAKE_HIP_ARCHITECTURES`. Then build only the HIP target incrementally. A
 cache entry proves configuration only; compiling the plugin and testing it
 with matching core libraries on the actual GPU remain required.

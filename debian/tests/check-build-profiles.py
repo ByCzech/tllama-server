@@ -19,7 +19,7 @@ PREFIX = "pkg.tllama-server."
 PACKAGES = {
     "cpu": {"tllama-server", "tllama-server-core", "tllama-server-backend-cpu"},
     "vulkan": {"tllama-server-backend-vulkan"},
-    "rocm": {"tllama-server-backend-rocm10.1"},
+    "rocm": {"tllama-server-backend-rocm10.2"},
     "cuda12.4": {"tllama-server-backend-cuda12.4"},
     "cuda12.9": {"tllama-server-backend-cuda12.9"},
     "cuda13.3": {"tllama-server-backend-cuda13.3"},
@@ -28,7 +28,7 @@ PACKAGES = {
 DEPENDENCIES = {
     "cpu": {"libssl-dev", "libopenblas-dev"},
     "vulkan": {"libvulkan-dev", "glslc", "spirv-headers"},
-    "rocm": {"amdrocm-core-sdk10.1"},
+    "rocm": {"amdrocm-core-sdk10.2"},
     "cuda12.4": {"nvidia-cuda-toolkit"},
     "cuda12.9": {"cuda-toolkit-12-9"},
     "cuda13.3": {"cuda-toolkit-13-3"},

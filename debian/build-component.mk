@@ -16,8 +16,8 @@ CUDA_LIBRARY_PATH = /usr/lib/$(DEB_HOST_MULTIARCH)
 CUDA_TOOLKIT_OPTION =
 CUDA_SHLIBDEPS_FLAGS =
 CUDA_TARGETS = 50-virtual;60;61-virtual;70-virtual;75-virtual;80-virtual;86-real;89-real;90-virtual
-ROCM_PACKAGE = tllama-server-backend-rocm10.1
-ROCM_ROOT = /opt/rocm/core-10.1
+ROCM_PACKAGE = tllama-server-backend-rocm10.2
+ROCM_ROOT = /opt/rocm/core-10.2
 ROCM_TARGETS = gfx900;gfx906;gfx90c;gfx908;gfx90a;gfx942;gfx950;gfx1010;gfx1011;gfx1012;gfx1030;gfx1031;gfx1032;gfx1033;gfx1034;gfx1035;gfx1036;gfx1100;gfx1101;gfx1102;gfx1103;gfx1150;gfx1151;gfx1152;gfx1153;gfx1200;gfx1201;gfx1250
 SYCL_PACKAGE = tllama-server-backend-sycl
 ONEAPI_ROOT = /opt/intel/oneapi
@@ -81,7 +81,7 @@ else
 BUILD_SERVER = OFF
 BUILD_CPU = OFF
 ifneq ($(ROCM_ONLY),)
-BUILD_DIR = build-debian-rocm10.1
+BUILD_DIR = build-debian-rocm10.2
 else
 ifneq ($(CUDA_ONLY),)
 BUILD_DIR = build-debian-cuda$(CUDA_VERSION)
@@ -108,9 +108,9 @@ ifneq ($(ROCM_ONLY),)
 	test -x $(ROCM_ROOT)/lib/llvm/bin/clang++
 	test -f $(ROCM_ROOT)/include/hip/hip_fp16.h
 	test -d $(ROCM_ROOT)/amdgcn/bitcode
-	grep -Eq '^10\.1([.]|$$)' $(ROCM_ROOT)/.info/version
+	grep -Eq '^10\.2([.]|$$)' $(ROCM_ROOT)/.info/version
 	test ! -e /usr/include/hip/hip_fp16.h || { \
-		echo "legacy HIP headers found in /usr/include/hip; remove libamdhip64-dev before building ROCm 10.1" >&2; \
+		echo "legacy HIP headers found in /usr/include/hip; remove libamdhip64-dev before building ROCm 10.2" >&2; \
 		exit 1; \
 	}
 	env HIP_PLATFORM=amd HIP_PATH=$(ROCM_ROOT) ROCM_PATH=$(ROCM_ROOT) \
@@ -123,7 +123,7 @@ ifneq ($(ROCM_ONLY),)
 		-DCMAKE_BUILD_TYPE=Release \
 		-DTLLAMA_BUILD_SERVER=OFF \
 		-DTLLAMA_INSTALL_LIBDIR=lib/tllama/server \
-		-DTLLAMA_BACKEND_INSTALL_DIR=lib/tllama/server/backends/rocm10.1 \
+		-DTLLAMA_BACKEND_INSTALL_DIR=lib/tllama/server/backends/rocm10.2 \
 		-DTLLAMA_BACKEND_RPATH=$(ROCM_ROOT)/lib \
 		-DCMAKE_HIP_COMPILER=$(ROCM_ROOT)/lib/llvm/bin/clang++ \
 		-DCMAKE_HIP_COMPILER_ROCM_ROOT=$(ROCM_ROOT) \

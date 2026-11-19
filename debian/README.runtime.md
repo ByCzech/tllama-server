@@ -23,7 +23,7 @@ Install `tllama-server` for the core runtime and CPU/OpenBLAS support.
 GPU support is provided by optional packages:
 
 - `tllama-server-backend-vulkan` uses the system Vulkan drivers.
-- `tllama-server-backend-rocm10.1` uses AMD ROCm 10.1. The required ROCm runtime
+- `tllama-server-backend-rocm10.2` uses AMD ROCm 10.2. The required ROCm runtime
   and BLAS packages are installed through package dependencies.
 - `tllama-server-backend-cuda12.4` supports NVIDIA Maxwell through Hopper GPUs,
   including Pascal Tesla P100. A compatible NVIDIA driver is required; CUDA
@@ -43,21 +43,41 @@ version; to select a suitable backend for an older GPU, run
 
 GPU backends require the matching core and CPU package versions.
 
-The ROCm 10.1 build also targets legacy Vega `gfx900`, `gfx906` and `gfx90c`
+When upgrading from the previous ROCm 10.1 package set, replace its backend
+at the same time as the core and other installed backends. After the complete
+new set is available in the APT repository, request the replacement explicitly:
+
+```sh
+sudo apt install tllama-server-backend-rocm10.2 tllama-server-backend-rocm10.1-
+```
+
+The trailing `-` requests removal of the old backend package. Review APT's
+proposed upgrades of the core/CPU and any other installed backends; all must
+have the same package version. The old 10.1 backend cannot remain with the
+new core because it depends on its original exact version. Keep the complete
+previous package set if a rollback is needed.
+
+The ROCm 10.2 build also targets legacy Vega `gfx900`, `gfx906` and `gfx90c`
 experimentally. Install the BLAS addon matching the actual GPU:
 
 | GPU target | BLAS device package |
 | --- | --- |
-| gfx900 (Vega 56/64, MI25) | `amdrocm-blas10.1-gfx900` |
-| gfx906 (MI50/MI60, Radeon VII) | `amdrocm-blas10.1-gfx906` |
-| gfx90c (Vega APU, including Ryzen 7 5700G) | `amdrocm-blas10.1-gfx90c` |
+| gfx900 (Vega 56/64, MI25) | `amdrocm-blas10.2-gfx900` |
+| gfx906 (MI50/MI60, Radeon VII) | `amdrocm-blas10.2-gfx906` |
+| gfx90c (Vega APU, including Ryzen 7 5700G) | `amdrocm-blas10.2-gfx90c` |
 
-For example, install `amdrocm-blas10.1-gfx906` alongside
-`tllama-server-backend-rocm10.1` for an MI50. Use the addon version matching
+For example, install `amdrocm-blas10.2-gfx906` alongside
+`tllama-server-backend-rocm10.2` for an MI50. Use the addon version matching
 the installed ROCm host/runtime packages. The backend's `Suggests` lists all
 three addons; install the one needed by the GPU. They are not all required
 on modern AMD GPUs. No gfx900 spoofing or `HSA_OVERRIDE_GFX_VERSION` is needed
 for a native gfx90c build.
+
+The matching 10.2 legacy addons may be distributed separately from AMD's
+standard targets. Wait for the appropriate addon before testing a legacy GPU
+with this backend; 10.1 addons do not supply a 10.2 runtime. On these legacy
+targets, disable mmap with `--load-mode none`. This build does not
+assume that the ROCm upgrade fixes the observed mmap/kernel interaction.
 
 Runtime and BLAS support do not by themselves qualify GGML operations or
 model inference on each target. These combinations remain experimental until

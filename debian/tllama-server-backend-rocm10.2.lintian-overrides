@@ -1,0 +1,2 @@
+# Select this versioned external SDK without adding it to the global loader path.
+tllama-server-backend-rocm10.2: custom-library-search-path * /opt/rocm/core-10.2/lib [usr/lib/tllama/server/backends/rocm10.2/libggml-hip.so]

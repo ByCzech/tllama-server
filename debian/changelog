@@ -1,3 +1,19 @@
+tllama-server (1.0.0~dev+b12359.2-1) stable; urgency=medium
+
+  * Pin native e148b6dbe6 with twelve selected official post-v1.0.0 backports:
+    GCN MMQ/Stream-K, HIP MoE/LoRA, CDNA GDN, Vulkan attention kernels,
+    SYCL attention masks, streaming connection reuse and recurrent NaN reset.
+  * Retain Memory API V1, Instella-MoE and existing GPU compatibility changes;
+    keep build number 12359 to identify the official v1.0.0 base.
+  * Replace the regular ROCm 10.1 backend build with ROCm Core SDK 10.2,
+    pinning versioned SDK/runtime paths and dependency minima to 10.2.0-2.
+  * Keep all 28 native HIP targets, with matching optional 10.2 BLAS addons
+    for gfx900, gfx906 and gfx90c; document upgrade and mmap requirements.
+  * Match SYCL lintian path exceptions to the versioned oneAPI directories.
+  * Rebuild the core and every backend against the same native snapshot.
+
+ -- NemaChybu team APT archive <maintainers@nemachybu.cz>  Thu, 19 Nov 2026 12:00:00 +0100
+
 tllama-server (1.0.0~dev+b12359.1-1) stable; urgency=medium
 
   * Pin native c0819bbbae, merging official llama.cpp v1.0.0 (b12359).
